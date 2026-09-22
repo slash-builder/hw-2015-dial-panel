@@ -93,14 +93,39 @@ a 2.5 mm hex key, and wire strippers.
 | 07 | gold tab | yellow PLA | 1 |
 | 08 | speaker back-cup | matte black PLA | 1 |
 | 11 | wall cleat | matte black PLA | 1 |
+| 12 | cleat receiver rail (bolts to the back shell) | matte black PLA | 1 |
+
+Every STL is already in its print orientation and prints without supports.
 
 The panel is two modules (screen and control column) that bolt together:
 the 7" screen plus the dial is wider than any common print bed.
 Assembled it's **309 × 200 mm and 67 mm off the wall** (85 mm to the knob).
 
+## Printing on a Bambu Lab printer
+
+Open **[`bambu/dial-panel-hw-2015.3mf`](bambu/dial-panel-hw-2015.3mf)** in Bambu Studio. Every
+part is already placed, oriented and assigned its filament, on named plates:
+
+| Plate | Parts | Filament | Time (A1) |
+|---|---|---|---|
+| 1 | face plate, screen | matte black PLA | 1 h 33 m |
+| 2 | back shell, screen | matte black PLA | 4 h 31 m |
+| 3 | control column: face plate + back shell | matte black PLA | 4 h 30 m |
+| 4 | speaker cup, wall cleat, receiver rail | matte black PLA | 39 m |
+| 5 | screen trim + knob | silver silk PLA | 37 m |
+| 6 | gold tab | yellow PLA | 1 m |
+| 7 | band diffuser | clear PETG | 11 m |
+| 8 | **A · IGNITION** band insert | matte black PLA | 44 m |
+| 9 | **B · NIGHTFALL** band insert | matte black PLA | 39 m |
+
+Print **plates 1–7**, plus **either 8 or 9** for your team: about 12½ hours in
+total. The project is set up for the **A1 with a 0.4 mm nozzle** on the
+**Textured PEI plate**. On another Bambu printer, switch the printer in Bambu
+Studio and re-slice. For other slicers, use the STLs in `stl/`.
+
 ## Build
 
-1. **Print** the parts above. Orientation per part is in [`cad/README.md`](cad/README.md).
+1. **Print** the parts above: the Bambu project, or the STLs, which are already print-oriented.
 2. **Inserts:** heat-set the M3 inserts. Every screw goes in from the back, so the face stays clean.
 3. **Screen module:** fit the display, with the Pi 5 and cooler on its back, the amp and the speaker (back-cup screwed on behind it).
 4. **Column:** fit the dial (held by its own nut), the rocker, the gold tab and the mic cradle.
@@ -121,12 +146,15 @@ The CAD in `cad/` is parametric FreeCAD and regenerates every file. Every run ch
   includes Raspberry Pi's own display model and every screw's full length.
 - **Sound:** the path from the speaker through the band stays at least 25% open,
   for both inserts.
-- **Hanging:** the wall cleat engages 16.7 mm, and the panel hangs flat against the wall.
+- **Hanging:** the wall cleat engages 16.8 mm, and the panel hangs flat against the wall.
+- **Printing:** every part sits flat in its print orientation, and every plate slices in Bambu Studio with support off and no warnings.
 
 To regenerate, download Raspberry Pi's Touch Display 2 STEP into
 `cad/vendor/` (see `cad/vendor/README.txt`; it's their file, so it isn't
 included here) and run
-`freecadcmd cad/generate_parts.py`.
+`freecadcmd cad/generate_parts.py`. Then `python3 bambu/build_project.py`
+rebuilds the Bambu project and the print-oriented STLs, and slices every plate
+as a check. It needs FreeCAD and Bambu Studio installed.
 
 ## Known limits
 
@@ -144,6 +172,7 @@ cad/vendor/          where Raspberry Pi's display STEP goes (not included)
 stl/common/          parts every build prints
 stl/ignition/        the A · IGNITION band insert
 stl/nightfall/       the B · NIGHTFALL band insert
+bambu/               the Bambu Studio project (9 named plates) and the script that builds it
 docs/                wiring, config.txt, choosing a team, release drawings
 ```
 

@@ -224,7 +224,7 @@ def sheet(team):
             ("05", "band diffuser (speaker opening)", "clear PETG"),
             ("06", "knob", "silver silk PLA"),
             ("07", "gold tab", "yellow PLA"),
-            ("08 / 11", "speaker back-cup · wall cleat", "matte black PLA")]
+            ("08 / 11 / 12", "speaker cup · wall cleat · receiver rail", "matte black PLA")]
     for k, (n, what, mat) in enumerate(rows):
         yy = py + 28 + k * 23
         out.append(f'<text x="60" y="{yy}" font-family="{B.MONO}" font-size="13" fill="{B.V050}">{n}</text>'
