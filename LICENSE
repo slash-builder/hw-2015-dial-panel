@@ -1,7 +1,7 @@
 This repository is dual-licensed by content type.
 
   Code - Apache License 2.0 (LICENSE-APACHE)
-    cad/generate_parts.py, bom/cart_link.py, docs/drawings/*.py, and any other
+    cad/generate_parts.py, bom/shopping_list.py, docs/drawings/*.py, and any other
     source code.
 
   Design files - Creative Commons Attribution 4.0 International (LICENSE-CC-BY-4.0)

@@ -39,15 +39,37 @@ Roughly **$320 per build** (≈ $450 cart, with spare parts from multi-packs),
 prices as of 2026-09-21. Buying the Pi and display from an approved reseller
 is cheaper; the BOM notes where.
 
-<!-- CART-LINK:BEGIN -->
-**[Add the full BOM to your Amazon cart](https://www.amazon.com/gp/aws/cart/add.html?ASIN.1=B0G4R8TSLN&Quantity.1=1&ASIN.2=B0DM24QFCF&Quantity.2=1&ASIN.3=B0B7NXBM6P&Quantity.3=1&ASIN.4=B07F26CT6B&Quantity.4=1&ASIN.5=B08683RMVY&Quantity.5=1&ASIN.6=B0DPJRLMDJ&Quantity.6=1&ASIN.7=B01LN8ONG4&Quantity.7=1&ASIN.8=B01KLRBHGM&Quantity.8=1&ASIN.9=B0CDC3KQN1&Quantity.9=1&ASIN.10=B01CDTED80&Quantity.10=2&ASIN.11=B00XW2L39K&Quantity.11=1&ASIN.12=B0DDWS7BTS&Quantity.12=1&ASIN.13=B0GRV5NW7Q&Quantity.13=1&ASIN.14=B01EV70C78&Quantity.14=1&ASIN.15=B01MFA3OFA&Quantity.15=1&ASIN.16=B0D7ZYCVTY&Quantity.16=1&ASIN.17=B0C6QFDQWT&Quantity.17=1&ASIN.18=B0B12W69HT&Quantity.18=1&ASIN.19=B085TGGV3L&Quantity.19=1)** (19 listings, 20 items)
-<!-- CART-LINK:END -->
+**Shopping list:** one row per Amazon listing, with how many to add to your cart.
+It's generated from [`bom/bom.csv`](bom/bom.csv). The four filaments are included,
+so skip any you already own. The Pi kit already includes the power supply and
+cooler. Links carry **no affiliate tag**.
 
-The button adds every Amazon listing in the BOM, including the four filaments,
-so remove anything you already own. The Pi kit already includes the power
-supply and cooler. Items that are out of stock get skipped, so check the cart
-against [`bom/bom.csv`](bom/bom.csv). The link carries **no affiliate tag**.
-Regenerate it with `python3 bom/cart_link.py` whenever the BOM changes.
+<!-- SHOPPING-LIST:BEGIN -->
+| Part | Buy | Per build | Listing |
+|---|---|---|---|
+| Raspberry Pi 5 (4 GB) | 1 | $158.64 | [Amazon](https://www.amazon.com/dp/B0G4R8TSLN) |
+| Raspberry Pi Touch Display 2 (7 in) | 1 | $90.00 | [Amazon](https://www.amazon.com/dp/B0DM24QFCF) |
+| microSD card | 1 | $23.99 | [Amazon](https://www.amazon.com/dp/B0B7NXBM6P) |
+| KY-040 rotary encoder module | 1 | $1.80 | [Amazon](https://www.amazon.com/dp/B07F26CT6B) |
+| Mini rocker switch | 1 | $1.09 | [Amazon](https://www.amazon.com/dp/B08683RMVY) |
+| I2S amplifier | 1 | $3.44 | [Amazon](https://www.amazon.com/dp/B0DPJRLMDJ) |
+| Speaker | 1 | $4.50 | [Amazon](https://www.amazon.com/dp/B01LN8ONG4) |
+| USB microphone | 1 | $7.99 | [Amazon](https://www.amazon.com/dp/B01KLRBHGM) |
+| USB-A extension (to splice) | 1 | $3.00 | [Amazon](https://www.amazon.com/dp/B0CDC3KQN1) |
+| WS2812B LED strip | 2 | $7.79 | [Amazon](https://www.amazon.com/dp/B01CDTED80) |
+| Level shifter (recommended) | 1 | $7.25 | [Amazon](https://www.amazon.com/dp/B00XW2L39K) |
+| M3 heat-set inserts | 1 | $0.60 | [Amazon](https://www.amazon.com/dp/B0DDWS7BTS) |
+| M3 socket-head screws | 1 | $0.50 | [Amazon](https://www.amazon.com/dp/B0GRV5NW7Q) |
+| Dupont jumper wires | 1 | $0.90 | [Amazon](https://www.amazon.com/dp/B01EV70C78) |
+| Heat-shrink assortment | 1 | $0.25 | [Amazon](https://www.amazon.com/dp/B01MFA3OFA) |
+| Filament: matte black PLA | 1 | $8.50 | [Amazon](https://www.amazon.com/dp/B0D7ZYCVTY) |
+| Filament: silver silk PLA | 1 | $1.30 | [Amazon](https://www.amazon.com/dp/B0C6QFDQWT) |
+| Filament: yellow/gold PLA | 1 | $0.70 | [Amazon](https://www.amazon.com/dp/B0B12W69HT) |
+| Filament: clear/natural PETG | 1 | $0.85 | [Amazon](https://www.amazon.com/dp/B085TGGV3L) |
+<!-- SHOPPING-LIST:END -->
+
+Wall screws and anchors come from any hardware store. Regenerate this list with
+`python3 bom/shopping_list.py` whenever the BOM changes.
 
 **A printer** with a 250 × 210 mm bed or larger (Prusa MK4, Bambu A1, and
 similar). Every part prints **without supports**.
