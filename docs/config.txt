@@ -1,0 +1,16 @@
+# Dial Panel -- append to /boot/firmware/config.txt (Raspberry Pi OS Bookworm)
+# Overlay names/parameters checked against raspberrypi/firmware boot/overlays/README, 2026-09-21.
+
+# Audio: MAX98357A on GPIO18 (BCLK) / GPIO19 (LRCLK) / GPIO21 (DIN); SD_MODE not driven, keeps GPIO4 free
+dtoverlay=max98357a,no-sdmode
+
+# Dial turn: rotary encoder on GPIO17 (A) / GPIO27 (B) as a RELATIVE axis (like a scroll wheel).
+# steps-per-period=1 suits 20-detent/20-pulse KY-040s; use 2 if yours is 30 detent / 15 pulse.
+dtoverlay=rotary-encoder,pin_a=17,pin_b=27,relative_axis=1,steps-per-period=1
+
+# Dial push: GPIO22, active low, internal pull-up -> KEY_ENTER (28)
+dtoverlay=gpio-key,gpio=22,active_low=1,gpio_pull=up,keycode=28,label="dial-push"
+
+# LEDs: RP1 PIO driver on GPIO10, 52 pixels, brightness capped ~25% for the Pi's 5 V budget -> /dev/leds0
+dtoverlay=ws2812-pio,gpio=10,num_leds=52,brightness=64
+# (Fallback instead of ws2812-pio: dtparam=spi=on and drive MOSI/GPIO10 with pi5neo or Adafruit neopixel_spi)

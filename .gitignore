@@ -1,0 +1,8 @@
+# Raspberry Pi's display STEP: download it, never commit it (see cad/vendor/README.txt)
+cad/vendor/*.step
+cad/vendor/*.STEP
+# regenerated output of cad/generate_parts.py (the release copies live in stl/ and cad/step/)
+cad/out/
+__pycache__/
+*.pyc
+.DS_Store

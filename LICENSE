@@ -1,0 +1,16 @@
+This repository is dual-licensed by content type.
+
+  Code - Apache License 2.0 (LICENSE-APACHE)
+    cad/generate_parts.py, docs/drawings/*.py, and any other source code.
+
+  Design files - Creative Commons Attribution 4.0 International (LICENSE-CC-BY-4.0)
+    Everything else: CAD models (cad/step/*.step), printable meshes (stl/),
+    drawings (docs/drawings/*.svg), the bill of materials (bom/) and the
+    documentation (README.md, docs/*.md, cad/README.md).
+
+  Attribution for CC-BY-4.0: "Dial Panel (hw-2015) by SlashBuilder,
+  github.com/slash-builder/hw-2015-dial-panel".
+
+Not included and not covered: the Raspberry Pi Touch Display 2 STEP model is
+Raspberry Pi Ltd's file. It is not redistributed here; cad/vendor/README.txt
+says where to download it.
