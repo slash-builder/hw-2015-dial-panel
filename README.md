@@ -39,6 +39,16 @@ Roughly **$320 per build** (≈ $450 cart, with spare parts from multi-packs),
 prices as of 2026-09-21. Buying the Pi and display from an approved reseller
 is cheaper; the BOM notes where.
 
+<!-- CART-LINK:BEGIN -->
+**[Add the full BOM to your Amazon cart](https://www.amazon.com/gp/aws/cart/add.html?ASIN.1=B0G4R8TSLN&Quantity.1=1&ASIN.2=B0DM24QFCF&Quantity.2=1&ASIN.3=B0B7NXBM6P&Quantity.3=1&ASIN.4=B07F26CT6B&Quantity.4=1&ASIN.5=B08683RMVY&Quantity.5=1&ASIN.6=B0DPJRLMDJ&Quantity.6=1&ASIN.7=B01LN8ONG4&Quantity.7=1&ASIN.8=B01KLRBHGM&Quantity.8=1&ASIN.9=B0CDC3KQN1&Quantity.9=1&ASIN.10=B01CDTED80&Quantity.10=2&ASIN.11=B00XW2L39K&Quantity.11=1&ASIN.12=B0DDWS7BTS&Quantity.12=1&ASIN.13=B0GRV5NW7Q&Quantity.13=1&ASIN.14=B01EV70C78&Quantity.14=1&ASIN.15=B01MFA3OFA&Quantity.15=1&ASIN.16=B0D7ZYCVTY&Quantity.16=1&ASIN.17=B0C6QFDQWT&Quantity.17=1&ASIN.18=B0B12W69HT&Quantity.18=1&ASIN.19=B085TGGV3L&Quantity.19=1)** (19 listings, 20 items)
+<!-- CART-LINK:END -->
+
+The button adds every Amazon listing in the BOM, including the four filaments,
+so remove anything you already own. The Pi kit already includes the power
+supply and cooler. Items that are out of stock get skipped, so check the cart
+against [`bom/bom.csv`](bom/bom.csv). The link carries **no affiliate tag**.
+Regenerate it with `python3 bom/cart_link.py` whenever the BOM changes.
+
 **A printer** with a 250 × 210 mm bed or larger (Prusa MK4, Bambu A1, and
 similar). Every part prints **without supports**.
 
