@@ -94,9 +94,9 @@ continuous pillar needed, just aligned holes). Each module is independently
 | # | File | Material / colour | Qty | Print orientation | Support | Notes |
 |---|---|---|---|---|---|---|
 | 01a | `01a-face-plate-screen` | Black PLA (matte) | 1 | Front face DOWN | None | Screen window, band window, band-insert/trim/perimeter blind bosses on the back |
-| 01b | `01b-face-plate-column` | Black PLA (matte) | 1 | Front face DOWN (shallow 0.6mm rib texture) | None | 24-detent tick ring (only intentional front relief), KY-040 bushing hole + local thinned zone, rocker cutout + local thinned zone, gold-tab pocket |
-| 02a | `02a-back-shell-screen` | Black PLA (matte) | 1 | Open-front DOWN | None | Display retention, Pi5/cooler clearance + vents, sealed speaker pod + amp/level-shifter trays, band LED trough, wall-wash LED channel, cable slot, integrated 45° cleat receiver, seam clearance |
-| 02b | `02b-back-shell-column` | Black PLA (matte) | 1 | Open-front DOWN | None | Mic ports + cradle shelf, KY-040 anti-rotation tab, rocker clearance, seam bosses, perimeter mounts, wall-wash LED channel |
+| 01b | `01b-face-plate-column` | Black PLA (matte) | 1 | Front face DOWN (flat — see below) | None | 24-detent tick ring, ENGRAVED ~0.6mm into the front (only intentional front relief; changed from raised this pass — see "Print-orientation checks"), KY-040 bushing hole + local thinned zone, rocker cutout + local thinned zone, gold-tab pocket |
+| 02a | `02a-back-shell-screen` | Black PLA (matte) | 1 | **BACK-WALL DOWN** (changed round 5 — see "Print-orientation checks") | None | Display retention, Pi5/cooler clearance + vents, sealed speaker pod (tapered lead-in, now harmless not load-bearing) + amp/level-shifter POCKETS, band LED groove, wall-wash LED channel, cable slot, seam clearance, registration recess + 3× M3 clearance holes for the separate 12-cleat-receiver-rail |
+| 02b | `02b-back-shell-column` | Black PLA (matte) | 1 | **BACK-WALL DOWN** (changed round 5 — see "Print-orientation checks") | None | Mic ports + cradle shelf (round 5: extended to the true back wall, now a full support partition, not a floating shelf), KY-040 anti-rotation tab, rocker clearance, seam bosses (round 5: each with its own support rib to the back wall), perimeter mounts, wall-wash LED channel |
 | 03 | `03-screen-trim` | Silver silk PLA | 1 | Flat, front face down | None | Chrome bezel ring, seats in 01a's front rebate, screwed from behind |
 | 04a | `04a-band-insert-ignition` | Black PLA (matte) | 1 (of 2 variants) | Flat, front face down | None | "Ember" hex-staggered perforation: base grid 3.2mm holes/6.5mm pitch outside the acoustic zone, a denser 3.5mm/5.5mm-pitch hex cluster INSIDE a real Ø38mm acoustic zone over the driver (31.4% open there), 143 holes total, 16.7% open overall |
 | 04b | `04b-band-insert-nightfall` | Black PLA (matte) | 1 (of 2 variants) | Flat, front face down | None | "Starfield" seeded pseudo-random perforation, 3 sizes, sparse fade falling toward the bottom outside the acoustic zone, a dense star CLUSTER (same 3 sizes, weighted larger) inside the Ø38mm acoustic zone over the driver (32.1% open there), 117 holes total, 9.0% open overall |
@@ -104,11 +104,190 @@ continuous pillar needed, just aligned holes). Each module is independently
 | 06 | `06-knob` | Silver silk PLA | 1 | Flat mounting-face down | None | Ø30×18mm, D-bore 6.1/4.6mm, radial M3 set-screw pilot, pointer groove |
 | 07 | `07-gold-tab` | Yellow/gold PLA | 1 | Flat, either face down | None | Static press-fit tab (documented deviation from the "mechanical reveal" in the xxx5 guide — task-specified) |
 | 08 | `08-speaker-back-cup` | Black PLA (matte) | 1 | Flange face down | None | Seals the pod from behind, plug seal + recess for the 30–60cc sealed chamber, 4× M3 into 02a, cable pass-through |
-| 11 | `11-wall-cleat` | Black PLA (matte) | 1 | Flat back face down | None | 45° french cleat, 180×11.8×13.8mm (cross-section DERIVED so the engaged rear face lands exactly on `BACK_PLANE_Y` — see "Real defects" #10), 2× countersunk wood-screw holes, verified ENGAGED and coplanar against 02a/02b in the assembly reference |
+| 11 | `11-wall-cleat` | Black PLA (matte) | 1 | Flat BOTTOM face down, no rotation | None | 45° french cleat, 180×11.9×13.9mm (cross-section DERIVED so the engaged rear face lands exactly on `BACK_PLANE_Y` — see "Real defects"), 2× countersunk wood-screw holes, verified ENGAGED and coplanar against 02a+rail/02b in the assembly reference |
+| 12 | `12-cleat-receiver-rail` | Black PLA (matte) | 1 | Flat mounting-face (tongue) DOWN | None | **NEW, round 5.** The french-cleat receiver ridge, split OFF 02a into its own printed part (see "Round 5" below) — reproduces the old fused wedge's exact geometry/position; 3× M3 into its own blind heat-set inserts, screwed to 02a from inside the cavity |
+
+## Round 5 — cleat rail split off, 02a/02b flipped to back-wall-DOWN
+
+Coordinator decision after round 4b's real-slicing pass (see "Print-
+orientation checks" below) still showed both 02a and 02b's flat back
+walls bridging the whole tub with nothing under them, open-front-DOWN:
+the correct print orientation for a tub is open-side UP (back wall on
+the bed), not open-front down. 02b already measured 95.9% bed contact
+back-down; 02a was blocked only by its own integrated 45° cleat-
+receiver ridge, which used to protrude 12mm past the back wall and
+become the new low point when flipped.
+
+**Fix, three parts:**
+
+1. **The cleat receiver is now its own printed part**, `12-cleat-
+   receiver-rail` (black PLA) — built from the exact same wire/points
+   the old fused wedge used, so its world position is bit-for-bit
+   identical, and the wall-cleat engagement math needed no changes.
+   Bolts to 02a's back wall with 3× M3 into its own blind heat-set
+   inserts; screws driven from inside 02a's cavity (before 01a closes
+   it up) through plain clearance holes, countersunk on the cavity
+   side — hidden once assembled, and hidden again once hung. 02a gets
+   a shallow 0.7mm registration recess (the old wedge's own 0.5mm real-
+   overlap sliver, now a real self-jigging tongue) plus the 3 holes.
+   Print orientation: flat mounting face (the tongue) down — zero
+   support, matching the coordinator's own "a 45° wedge usually prints
+   lying on its flat back."
+2. **02a and 02b now print BACK-WALL DOWN** (`PRINT_ORIENTATIONS`
+   changed from `Vector(0,-1,0)` to `Vector(0,1,0)`). Every remaining
+   boss/tube/tab extends FROM the back wall TOWARD the open rim —
+   columns rising from a base, self-supporting by construction — so
+   the old 45° tapers on the speaker-pod tube and the KY-040 tab are
+   no longer load-bearing (left in place; harmless).
+3. **Two NEW defects found only by direct isolation against the real
+   slicer** (Bambu Studio, supports off) after the flip — neither was
+   caught by `overhang_scan()`, which only sees PLANAR faces:
+   - **02b's mic-cradle shelf** (fused only to the two side walls,
+     spanning the full width) sat ~49mm above the true floor with
+     nothing under it — a genuine floating cantilever, not a bridge.
+     Fixed by extending the shelf's own depth to reach the true back
+     wall exactly (not past it — see the pod-tube overshoot Gotcha
+     below), turning it into a full support partition.
+   - **02b's seam-bolt bosses** (Ø9mm pegs, anchored only at the side
+     wall, sticking sideways into open cavity air at Y=y0+15 — only
+     15mm out of a 66.56mm total depth, i.e. near the very top of the
+     new ~63.5mm vertical stack) triggered Bambu's own "floating
+     cantilever" warning even after every other feature was fixed.
+     Found by disabling one fused/cut feature at a time and re-slicing
+     for real, not by extending `overhang_scan()` (a round cylinder's
+     surface isn't planar, so that scan can't see this class at all —
+     documented directly in its own docstring now). Fixed with a real
+     support rib running from each boss straight down to the back
+     wall, the same "reach the floor" fix as the mic-cradle shelf.
+
+**Gotcha found (twice) this round:** a cylinder/box built with a
+defensive "+0.5mm/+1.0mm real overlap margin" at its FAR end, meant to
+guarantee a valid fuse, silently overshoots the part's own true outer
+face by that margin. Harmless in the old open-front-DOWN orientation
+(the overshoot was up at the open rim, nowhere near the bed) — but
+once back-wall-DOWN made that outer face the bed-contact plane, the
+overshoot became the part's own new lowest point, standing the
+ENTIRE flat back wall off the bed (1.9% first-layer contact instead
+of ~90%+, or 0.0% in the shelf's case). Hit on the speaker-pod tube
+(02a) and the mic-cradle shelf (02b) independently; fixed both by
+ending exactly at the true outer face, never past it — the shell
+already has real solid material out to that face, so no defensive
+margin is needed there.
+
+**Result:** `python3 bambu/build_project.py` from the repo root now
+exits 0 — every plate slices with ZERO warnings, confirmed by direct
+re-run, not just inferred from `generate_parts.py`'s own checks.
+`cad/print_rotations.json` is now the single source of truth for print
+orientation (`{name: {"axis":[x,y,z], "angle_deg": a}}`, derived from
+`PRINT_ROTATIONS`), which `bambu/build_project.py` reads directly.
+
+## Print-orientation checks (round 4/4b — for context)
+
+A packaging pass built the real Bambu Studio project (`bambu/build_project.py`)
+and sliced every plate for real (A1, 0.20mm Standard, supports OFF). That
+found two parts that didn't actually sit flat the way this README claimed,
+and real slicing found a third, different problem class on top:
+
+1. **01b's 24-detent ribs were raised 0.6mm.** Printed "front face down,"
+   the part stood on the ~108mm² tick ring alone, with the rest of the
+   face floating 0.6mm. **Fixed:** the ticks are now ENGRAVED (recessed
+   ~0.6mm into the front) instead of raised, so the front is one flat
+   plane at Y=0. Same 24 ticks, same readability, one boolean sign
+   flipped (`cut` instead of `fuse`).
+2. **02b's mic-cradle shelf (and its two side lips) started 1mm forward
+   of the rim plane.** Printed "open-front down," the part stood on that
+   1mm-proud shelf/lips, floating the actual rim 1mm off the bed.
+   **Fixed:** pulled back to start exactly at the rim plane (`y0`), with
+   the far end held at its original absolute position so the mic
+   assembly's own real clearance is unchanged.
+3. **The wall-cleat's documented orientation ("back face down") was
+   wrong from this part's very first version.** Its wedge cut removes
+   most of that face — at H=13.8/D=11.8 it's only `H-D=2mm` tall, ~33%
+   real contact. Its actual best face (also what Bambu Studio's own
+   "most-contact" auto-orientation finds independently) is its
+   ORIGINAL bottom face (Z=0, never touched by the wedge cut) — i.e.
+   **no rotation at all**. **Corrected** in `PRINT_ORIENTATIONS` and in
+   this table.
+4. **Real slicing found a fourth, different defect class 1-3 don't
+   cover: internal fused features that hang off a wall into open
+   cavity air with a flat leading cap and nothing underneath** — "It
+   seems object 02a-back-shell-screen has floating cantilever," later
+   "floating regions" on both 02a and 02b. Found and fixed for real:
+   - **Speaker-pod tube (02a):** started abruptly at full 50mm OD,
+     12mm above the rim, with nothing below it. **Fixed** with a real
+     45°-safe conical lead-in (grows from the shoulder bore's own
+     radius, i.e. zero wall thickness, up to full OD over ~6mm).
+   - **KY-040 anti-rotation tab (02b):** same pattern, ~43mm above the
+     rim. **Fixed** with a 45°-safe wedge taper at its leading edge
+     (the functional PCB-stop face, at the back of the rib, is
+     unchanged).
+   - **Amp + level-shifter mounts and the band-LED channel:**
+     redesigned from fused PROUD rings/troughs (the same floating
+     pattern, just rectangular) to **RECESSED POCKETS cut into the
+     back wall's own existing material** — a pocket in a wall that's
+     already there isn't a new unsupported structure, same reasoning
+     as 01a's own screen-trim front rebate.
+
+### Two checks added, real and asserted, not just described
+
+- **`print_orientation_check()`** (flat/plate-like parts: 01a, 01b, 03,
+  04a, 04b, 05, 06, 07, 08, 11) — rotates the part into its stated
+  orientation, sits it on the bed, and requires ≥80% of its own real
+  footprint to be in the first 0.3mm layer (80%, not 100%, so a small,
+  individually-verified-safe shallow feature like 01a's own trim
+  rebate — real wall support on both sides, confirmed by real slicing
+  to need no support — doesn't false-fail a check whose actual target,
+  "no feature stands proud and props up the rest," is about the
+  <1%-contact pattern the original raised ribs/shelf actually showed).
+- **`overhang_scan()`** (tub/shell parts: 02a, 02b) — the footprint
+  metric doesn't apply to a tub (only the rim is *meant* to touch the
+  bed); this scans every downward-facing planar face steeper than 45°
+  from vertical and not on the bed, and reports three tiers rather than
+  forcing one pass/fail number it can't actually justify by geometry
+  alone (see the function's own docstring): the whole-panel back-wall
+  bridge (reported as an **open, unresolved item** — see below), the
+  pocket-scale faces from fix #4 above (reported, not asserted — this
+  scan can't tell a pocket floor from a cantilever cap by face geometry
+  alone), and small residuals (the back-cup mounting bosses' own
+  leading caps, ~33mm² each — a real 45° taper doesn't fit there
+  without shrinking the M3 insert's own 6.5mm real thread depth, so
+  it's documented and left, not silently papered over). The scan's own
+  hard assert fires only on anything OUTSIDE those three named,
+  explained tiers.
+
+```
+PRINT_ROTATIONS (axis, angle-deg) -- printed by generate_parts.py, for a
+packaging script to reuse directly:
+  '01a-face-plate-screen':      axis=(1,0,0), angle=90.00deg
+  '01b-face-plate-column':      axis=(1,0,0), angle=90.00deg
+  '02a-back-shell-screen':      axis=(1,0,0), angle=90.00deg
+  '02b-back-shell-column':      axis=(1,0,0), angle=90.00deg
+  '03-screen-trim':              axis=(1,0,0), angle=90.00deg
+  '04a-band-insert-ignition':    axis=(1,0,0), angle=90.00deg
+  '04b-band-insert-nightfall':   axis=(1,0,0), angle=90.00deg
+  '05-band-diffuser':            axis=(1,0,0), angle=90.00deg
+  '06-knob':                     axis=(1,0,0), angle=90.00deg
+  '07-gold-tab':                 axis=(1,0,0), angle=90.00deg
+  '08-speaker-back-cup':         axis=(1,0,0), angle=90.00deg
+  '11-wall-cleat':                axis=(0,0,1), angle=0.00deg   (no rotation)
+```
+
+### Resolved in round 5 — see "Round 5" above
+
+The open item that used to live in this section (`bambu/build_project.py`
+exiting 1 on "floating regions"/"floating cantilever" for 02a/02b) was
+**fixed, not papered over**, by the coordinator's own root-cause call:
+the problem was print ORIENTATION, not a missing support rib. See
+"Round 5 — cleat rail split off, 02a/02b flipped to back-wall-DOWN"
+above for the full fix (the cleat-receiver rail split, the orientation
+flip, and the two new defects the flip itself exposed). Confirmed by a
+real re-slice, not just this script's own checks: `python3
+bambu/build_project.py` now exits 0, every plate, zero warnings.
 
 Every file: **support-free** in its stated orientation, one solid, no
-enclosed voids. Estimated print time not computed this pass (no slicer
-run) — flagged as an open item, same as every prior open-build pass.
+enclosed voids, confirmed against the real slicer. Estimated print time
+is now available too — see the per-plate times in "Round 5" or the
+build's own console output.
 
 ## Assembly order
 
@@ -148,12 +327,19 @@ run) — flagged as an open item, same as every prior open-build pass.
    through 02a's clearance holes into 02b's blind bosses — this is what
    actually holds the two modules together edge-to-edge.
 6. Press the knob (06) onto the KY-040's D-shaft.
-7. Screw the wall-cleat (11) to studs/drywall anchors; hang the assembled
-   panel by its integrated receiver ridge (on 02a) — the two 45° faces
-   engage and the panel's own weight wedges them together. Verified in
-   the assembly reference at a real 16.7mm engagement depth with a
-   0.199mm face gap, both shells' own backs and the cleat's own rear
-   face coplanar at `BACK_PLANE_Y` (see "Wall-cleat engagement" under
+7. **Cleat rail (12) — NEW, round 5:** heat-set the rail's own 3× M3
+   inserts. Screw the rail onto 02a's back wall BEFORE hanging — from
+   inside the cavity (i.e. before step 1's own 01a-onto-02a screw-down,
+   or through the same clearance holes any time before the panel goes
+   on the wall), so the fastener is never visible once assembled or
+   hung. The rail's own registration recess self-jigs its position; no
+   separate alignment step needed.
+8. Screw the wall-cleat (11) to studs/drywall anchors; hang the assembled
+   panel by the rail (12) — the two 45° faces engage and the panel's own
+   weight wedges them together. Verified in the assembly reference at a
+   real 16.8mm engagement depth with a 0.252mm face gap, 02a+rail's own
+   back-most point, 02b's own back, and the cleat's own rear face all
+   coplanar at `BACK_PLANE_Y` (see "Wall-cleat engagement" under
    Verification); the wall-to-front-face distance once hung is 66.56mm.
 
 ## Verification
@@ -167,9 +353,9 @@ geometry, not a description of intent — see `generate_parts.py`'s own
 | Part | Solids | Valid | Shells | Bounding box (mm) |
 |---|---|---|---|---|
 | 01a-face-plate-screen | 1 | True | 1 | 219.32 × 10.10 × 200.24 |
-| 01b-face-plate-column | 1 | True | 1 | 90.00 × 10.70 × 200.24 |
-| 02a-back-shell-screen | 1 | True | 1 | 219.32 × 63.56 × 200.24 |
-| 02b-back-shell-column | 1 | True | 1 | 90.00 × 64.30 × 200.24 |
+| 01b-face-plate-column | 1 | True | 1 | 90.00 × 10.10 × 200.24 |
+| 02a-back-shell-screen | 1 | True | 1 | 219.32 × 51.56 × 200.24 |
+| 02b-back-shell-column | 1 | True | 1 | 90.00 × 63.56 × 200.24 |
 | 03-screen-trim | 1 | True | 1 | 175.76 × 8.60 × 107.30 |
 | 04a-band-insert-ignition | 1 | True | 1 | 185.32 × 2.00 × 39.00 |
 | 04b-band-insert-nightfall | 1 | True | 1 | 185.32 × 2.00 × 39.00 |
@@ -177,9 +363,16 @@ geometry, not a description of intent — see `generate_parts.py`'s own
 | 06-knob | 1 | True | 1 | 30.00 × 18.00 × 30.00 |
 | 07-gold-tab | 1 | True | 1 | 13.70 × 1.50 × 5.70 |
 | 08-speaker-back-cup | 1 | True | 1 | 56.00 × 6.00 × 56.00 |
-| 11-wall-cleat | 1 | True | 1 | 180.00 × 11.80 × 13.80 |
+| 11-wall-cleat | 1 | True | 1 | 180.00 × 11.90 × 13.90 |
+| 12-cleat-receiver-rail | 1 | True | 1 | 160.00 × 12.50 × 12.00 |
 
-All 12 files: solid count == 1 (asserted inline — fails loud on
+02a's own Y dimension dropped from 63.56mm to 51.56mm this round —
+expected, not a regression: the 12mm ridge that used to be fused in
+(reaching `BACK_PLANE_Y`) is now the separate rail (12), so 02a's own
+bare bounding box is just its real depth (`PANEL_D`, plus a hair of
+back-wall margin) again.
+
+All 13 files: solid count == 1 (asserted inline — fails loud on
 regression), `isValid() == True`, exactly 1 shell per solid (no enclosed
 internal voids), and every file fits the 250×210×210mm bed in some
 axis-aligned orientation (`fits_bed()`, checked against the bed's 3
@@ -332,16 +525,32 @@ of three independent guesses:
 - The "wall plane" is now read directly off the transformed shape's own
   `BoundBox`, never a hand-derived formula.
 
+**Round 5 update:** the receiver ridge is now the separate rail (12),
+bolted to 02a rather than fused into it (see "Round 5" above). The
+engagement math itself didn't change (the rail reproduces the old
+fused wedge's exact geometry/position), but the checks now measure
+against the rail's own real, installed geometry (`rail_placed`)
+instead of 02a's bare shell — which changed two numbers for the more
+honest: with the ridge fused into the WHOLE flat back wall, the
+measured hook-face gap had quietly been dominated by the wall's own
+0.2mm front margin nearby, not the ridge/hook geometry the design
+formula actually describes (0.199mm measured vs. a 0.247mm derived
+target — never actually the same measurement). Isolating the rail
+exposed the TRUE hook gap (0.324mm, over the 0.3mm tolerance) — fixed
+by retuning `CLEAT_FRONT_MARGIN` (0.2mm → 0.1mm) and re-measuring
+directly rather than re-deriving by hand a second time.
+
 | Check | Result | Requirement |
 |---|---|---|
-| Cleat bulk vs 02a+02b interference | **0.000mm³** | zero |
-| Minimum distance, cleat hook face to receiver ridge | **0.199mm** | ≤0.3mm (real contact) |
-| Hook engagement depth (shorter of the two mating segments) | **16.7mm** | ≥8mm |
+| Cleat bulk vs 02a+rail+02b interference | **0.000mm³** | zero |
+| Minimum distance, cleat hook face to receiver rail | **0.252mm** | ≤0.3mm (real contact) |
+| Hook engagement depth (shorter of the two mating segments) | **16.8mm** | ≥8mm |
 | Cleat rear (wall-mounting) face | world Y = **66.56mm** | == `BACK_PLANE_Y` |
-| 02a's own back-most point (YMax) | **66.56mm** | == `BACK_PLANE_Y` (±0.05mm) |
+| 02a bare-shell back-most point (YMax) | **54.56mm** | recessed, expected < `BACK_PLANE_Y` (the rail bridges the gap) |
+| 02a+rail assembled back-most point | **66.56mm** | == `BACK_PLANE_Y` (±0.05mm) |
 | 02b's own back-most point (YMax) | **66.56mm** | == `BACK_PLANE_Y` (±0.05mm) |
-| 02a/02b coplanarity | **0.00mm apart** | ≤0.05mm |
-| Every part (01a/01b/02a/02b/03/04b/05/11-engaged) vs. a slab just behind `BACK_PLANE_Y` | **0.0000mm³, every one** | ~0 (nothing stands into the wall) |
+| 02a+rail / 02b coplanarity | **0.00mm apart** | ≤0.05mm |
+| Every part (01a/01b/02a/02b/03/04b/05/11-engaged/12-rail) vs. a slab just behind `BACK_PLANE_Y` | **0.0000mm³, every one** | ~0 (nothing stands into the wall) |
 | **Wall-to-front-face distance when hung** | **66.56mm** | == `BACK_PLANE_Y` |
 
 The 66.56mm wall-to-face distance is real, not a target — it equals
@@ -510,10 +719,11 @@ own URL (in `generate_parts.py`'s docstring) to see it in place.
     interference check caught) — and by reading the "wall plane" off the
     transformed shape's own `BoundBox` directly instead of a hand formula
     a second time. See "Wall-cleat engagement" under Verification above
-    for the full numbers (0.000mm³ interference, 0.199mm contact gap,
-    16.7mm engagement depth, both shells and the cleat's rear face
-    coplanar at 66.56mm, nothing in the whole assembly standing into the
-    wall plane).
+    for the full numbers as they stood then (0.000mm³ interference,
+    0.199mm contact gap, 16.7mm engagement depth, both shells and the
+    cleat's rear face coplanar at 66.56mm) — and "Round 5" for how the
+    receiver ridge later became its own part (12-cleat-receiver-rail),
+    which changed the gap measurement to 0.252mm (see current table).
 
 ## What's real vs. estimated — full placeholder ledger
 
@@ -632,8 +842,12 @@ genuinely unverified is flagged **PLACEHOLDER**.
 
 ```
 generate_parts.py                          -- this build's full source
+print_rotations.json                       -- print orientation per part, data (name -> axis/angle_deg),
+                                               written by generate_parts.py from PRINT_ROTATIONS; the
+                                               single source of truth bambu/build_project.py reads
 bom-research.md                            -- the BOM agent's dimension research (read first)
-out/common/*.step, *.stl                   -- every shared part (01a,01b,02a,02b,03,05,06,07,08,11)
+step/*.step                                -- every part's STEP, incl. 12-cleat-receiver-rail (round 5)
+out/common/*.step, *.stl                   -- every shared part (01a,01b,02a,02b,03,05,06,07,08,11,12)
                                                + 04a/04b (both variants, for reference/editing)
                                                + assembly-reference.step (no Pi display STEP)
 out/ignition/04a-band-insert-ignition.stl  -- "Ignition" team release STL
