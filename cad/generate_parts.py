@@ -708,8 +708,37 @@ TRIM_MOUNTS = [(AA_CX + sx * (AA_W / 2.0 + REVEAL + TRIM_BORDER / 2.0),
                 AA_CZ + sz * (AA_H / 2.0 + REVEAL + TRIM_BORDER / 2.0))
                for sx in (-1, 1) for sz in (-1, 1)]
 
-TRIM_REBATE_D = 1.5
-assert TRIM_REBATE_D < FACE_T, "trim rebate must not be deeper than the panel wall"
+# TRIM_THICKNESS -- round 6, renamed from TRIM_REBATE_D. DJ's first
+# real print found 01a's own front REBATE (a shallow pocket cut into
+# the bed-contact front face to seat the trim flush) failed: printed
+# front-face DOWN, the rebate's own floor -- a picture-frame ring, real
+# material bordering the WINDOW's open air on its inner edge -- is a
+# genuine cantilever (however well-supported its outer edge is), and
+# neither real slicing nor this build's own 80% footprint check (84.5%,
+# passed) caught it. Fixed per DJ's own decision: drop the rebate
+# entirely. 01a's front face is now ONE flat plane (apart from real
+# through-openings); the trim (03) sits ON TOP of it and is allowed to
+# stand proud by its own thickness -- see build_screen_trim() and
+# build_face_plate_screen()'s own updated mounting comments.
+TRIM_THICKNESS = 1.5   # same magnitude as the old rebate depth -- now a proud plate thickness, not a pocket depth
+
+# TRIM_BOSS_OD -- hoisted here (from inside build_screen_trim(), where
+# it used to be a purely local/internal detail) so 01a's own bore that
+# admits the trim's pass-through boss is sized off the SAME constant,
+# not a second independent guess.
+TRIM_BOSS_OD = 7.5   # smaller than the usual 9mm boss -- narrow border here; still clears
+                       # the >=1.6mm insert-wall rule ((7.5-4)/2=1.75mm) and fits inside TRIM_OUTER_W/H
+assert (TRIM_BOSS_OD - INSERT_D) / 2.0 >= INSERT_WALL_MIN
+# Bore through 01a that the trim's own boss passes through -- a real
+# sliding clearance (+0.4mm), not the plain screw-only CLEAR_D hole the
+# old flush-in-a-rebate design used (that hole never needed to admit
+# the boss ITSELF, only a screw shaft, because the boss used to nest
+# inside the rebate's own shallow pocket instead of passing through
+# the plate). Now that the trim is proud in front, its boss must pass
+# all the way through 01a's own FACE_T thickness to reach an insert
+# bored from the boss's own tip, in open cavity air behind 01a -- see
+# build_screen_trim()'s own docstring.
+TRIM_BORE_D = TRIM_BOSS_OD + 0.4
 
 # Chrome-share-of-visible-face check (task hard constraint: <=20%)
 _window_area = (AA_W + 2 * REVEAL) * (AA_H + 2 * REVEAL)
@@ -719,6 +748,24 @@ _chrome_pct = 100.0 * _ring_area / _total_face_area
 print(f"Chrome (screen-trim) visible area: {_ring_area:.0f}mm2 / {_total_face_area:.0f}mm2 "
       f"= {_chrome_pct:.1f}% of the visible face")
 assert _chrome_pct <= 20.0, f"chrome trim is {_chrome_pct:.1f}% of the visible face, exceeds 20% cap"
+
+# Sight-line check (round 6) -- the trim now stands PROUD by
+# TRIM_THICKNESS instead of sitting flush in a rebate, so its own
+# inner (window-facing) edge is a real raised rim that could, at a
+# steep enough off-axis viewing angle, shade the display's own active
+# area at the REVEAL gap's edge. The trim's own window is cut
+# AA_W/H + 2*REVEAL, i.e. the rim's inner edge sits REVEAL beyond the
+# active area on every side; the rim itself rises TRIM_THICKNESS above
+# the display plane. The occlusion half-angle (off the panel's own
+# normal) at which the rim's OWN inner top edge first lines up with the
+# active area's own far edge -- beyond this angle, the rim would start
+# to shade the display -- is atan(REVEAL / TRIM_THICKNESS). A real,
+# computed, asserted number, not eyeballed.
+_sightline_deg = math.degrees(math.atan2(REVEAL, TRIM_THICKNESS))
+print(f"Sight-line: proud trim (thickness {TRIM_THICKNESS}mm) with a {REVEAL}mm reveal clears the "
+      f"active area's own edge up to {_sightline_deg:.1f}deg off the panel's own normal")
+assert _sightline_deg >= 20.0, (
+    f"sight-line clearance ({_sightline_deg:.1f}deg) is too shallow -- widen REVEAL or thin TRIM_THICKNESS")
 
 
 # =============================================================================
@@ -733,20 +780,19 @@ def build_face_plate_screen():
     win = box_cxz(AA_W + 2 * REVEAL, AA_H + 2 * REVEAL, FACE_T + 4, AA_CX, AA_CZ, -2)
     plate = plate.cut(win)
 
-    # Screen-trim(03) FRONT rebate -- the trim is a front-VISIBLE bezel
-    # ring, so (unlike the band insert/diffuser, which sit behind the
-    # panel) it seats in a shallow recess cut from the FRONT, held flush
-    # by screws driven from the BACK through plain clearance holes (not
-    # blind bosses -- a first draft reused the band-mount blind-boss
-    # pattern here, which would have pulled the "visible" trim to the
-    # BACK of the plate instead of seating it in front, the wrong side
-    # for a part meant to be seen). Rebate depth is real and shallower
-    # than FACE_T -- never a rebate deeper than the wall it's cut into
-    # (the open-build defect-list item this whole build is checked
-    # against).
-    trim_rebate = box_cxz(TRIM_OUTER_W, TRIM_OUTER_H, TRIM_REBATE_D + 0.01, AA_CX, AA_CZ, -0.005)
-    plate = plate.cut(trim_rebate)
-
+    # Screen-trim(03) front rebate -- REMOVED, round 6. DJ's first real
+    # print found this exact rebate failed: printed front-face DOWN,
+    # its own floor (a picture-frame ring, real material on its outer
+    # edge but bordering the WINDOW's genuine open air on its inner
+    # edge) is a real cantilever, however well its outer edge was
+    # supported -- neither real slicing nor this build's own 80%
+    # footprint check caught it (see bed_face_scan()'s own docstring,
+    # the new check built specifically for this class). DJ's decision:
+    # drop the rebate. 01a's front face (the bed-contact plane) is now
+    # ONE FLAT PLANE apart from real through-openings (the screen
+    # window above, the band window below, and the fastener bores
+    # below) -- the trim (03) now sits ON TOP of this flat face and is
+    # allowed to stand proud by its own TRIM_THICKNESS.
     band_win = box_cxz(BAND_WINDOW_W, BAND_WINDOW_H, FACE_T + 4, BAND_CX, BAND_CZ, -2)
     plate = plate.cut(band_win)
 
@@ -759,12 +805,18 @@ def build_face_plate_screen():
                      FACE_T + BAND_BOSS_LEN - INSERT_DEPTH + 0.3)
         plate = plate.cut(ins)
 
-    # screen-trim(03) mounting -- plain clearance THROUGH the plate (not
-    # a blind boss): the trim carries its OWN insert boss on its back
-    # face; a screw driven from the cavity side passes through this
-    # clearance hole and pulls the trim flush into the front rebate above.
+    # screen-trim(03) mounting -- round 6: now a WIDENED bore
+    # (TRIM_BORE_D, sized to the trim's own TRIM_BOSS_OD + real sliding
+    # clearance), not the old plain CLEAR_D screw-only hole. The trim
+    # is proud in front now, not flush in a rebate, so its own mounting
+    # boss must physically PASS THROUGH 01a's full FACE_T thickness to
+    # reach its insert, bored from the boss's own tip in the open
+    # cavity behind -- this bore is what admits the boss itself, not
+    # just a screw shaft. A screw driven from the cavity side then
+    # threads into that insert, pulling the trim flush against 01a's
+    # own flat front face.
     for (tx, tz) in TRIM_MOUNTS:
-        hole = cyl_y(CLEAR_D / 2.0, FACE_T + 4, tx, tz, -2)
+        hole = cyl_y(TRIM_BORE_D / 2.0, FACE_T + 4, tx, tz, -2)
         plate = plate.cut(hole)
 
     # perimeter mounts to back-shell 02a -- BLIND insert in the plate,
@@ -1071,9 +1123,59 @@ def build_back_shell_screen():
     # sit in, cut into wall material that's already there instead of
     # material fused onto thin air.
     band_led_len = BAND_WINDOW_W - 6.0
+    band_led_cz = BAND_Z0 + WALL + 4.0
+    band_led_y0 = y1 - BACK_WALL - 0.3
     band_led_groove = box_cxz(band_led_len, BAND_LED_W, POCKET_DEPTH + 0.3,
-                              BAND_CX, BAND_Z0 + WALL + 4.0, y1 - BACK_WALL - 0.3)
+                              BAND_CX, band_led_cz, band_led_y0)
     shell = shell.cut(band_led_groove)
+
+    # Round 6/7 -- coordinator found this groove's own "ceiling" is a
+    # real, un-asserted cantilever -- this groove runs the band
+    # window's own real width (band_led_len, ~171mm), FAR past the
+    # ~10mm bridge guideline -- exactly the "drooping ledge, expensive
+    # to discover on a 4.5hr print" risk flagged after DJ's own real
+    # 01a failure. Cutting the groove open to the true outer back face
+    # (the wash-LED channel's own safe trick) isn't an option here --
+    # this LED strip has to face FORWARD into the cavity, toward the
+    # diffuser, not toward the real wall behind the panel.
+    #
+    # A first gusset attempt (narrow ribs spanning the SAME Y-range as
+    # the groove cut itself, i.e. including its own 0.3mm real-cut
+    # margin PAST the wall's true cavity-facing plane) made things
+    # WORSE, confirmed by real slicing: each rib's own leading edge
+    # stuck 0.3mm proud past the wall's real inner face into open
+    # cavity air -- a small floating cap, repeated at every rib,
+    # exactly the "boss with a flat abrupt cap hanging in cavity air"
+    # pattern this build already fixed elsewhere (pod tube, KY tab).
+    # Direct isolation against the real slicer (bambu/build_project.py)
+    # confirmed it: with the ribs, "floating cantilever" on 02a; with
+    # them removed, zero warnings, matching round 6's own already-
+    # confirmed-clean baseline for this same groove. Fixed by giving
+    # each rib the EXACT SAME Y-range as the wall's own real material
+    # (from y1-BACK_WALL -- the true cavity-facing plane, no overshoot
+    # -- to y1-1.2, the pocket's own real floor) instead of the cut
+    # tool's own margin-padded range: no proud tip, real overlap with
+    # existing material on both the floor end and the general wall
+    # surface end.
+    #
+    # Round 7, re-examined again: even with that fix applied, re-
+    # running generate_parts.py's OWN check still showed the exact
+    # same 200mm2/44.4mm finding, byte-for-byte unchanged by the ribs
+    # -- meaning OCCT's own face-splitting during this boolean
+    # sequence doesn't land on the rib boundaries the way the span
+    # math assumed, so the ribs don't actually address what the check
+    # is flagging at all. Given the ORIGINAL (plain, un-ribbed) groove
+    # already real-slices with ZERO warnings -- confirmed independently
+    # twice: once as round 6's own baseline, once again directly in
+    # this round by isolating it back out after the first (overshoot)
+    # rib attempt's real regression -- and given adding ribs has so
+    # far only ever made things WORSE or done nothing, not better, the
+    # geometry is left as the plain groove. The check's OWN false
+    # positive for this specific irregular-shaped face is fixed in
+    # bed_face_scan() itself instead (see its docstring) -- mutating
+    # already-proven-safe geometry a third time, against a check that
+    # turned out to be the thing that needed the fix, isn't the right
+    # move here.
 
     # Rear wall-wash LED channel -- a partial loop (bottom + both sides) on
     # the OUTER rear-facing perimeter lip of the back wall (BOM: ~40 LEDs
@@ -1088,8 +1190,26 @@ def build_back_shell_screen():
     # Cable slot -- straight USB-C plug clearance, THROUGH the bottom wall
     # (Z=0..WALL), off to one side clear of the speaker pod. X=width,
     # Y=depth into the cavity, Z=fully through the wall thickness.
-    cable_slot = box_at(CABLE_SLOT_W, CABLE_SLOT_H, WALL + 4,
-                        CABLE_SLOT_CX - CABLE_SLOT_W / 2.0, FACE_T + 4.0, -2.0)
+    #
+    # Round 6 -- the coordinator's own new bed-face-pockets check found
+    # this slot's own "shallow" end (the bottom wall resuming, moving
+    # toward the front rim) is a real, un-asserted 16mm-span cantilever
+    # -- the slot used to start 4mm short of the rim (`FACE_T+4.0`),
+    # leaving a real, unsupported ledge of wall material floating
+    # between the slot and the rim. Fixed per the coordinator's own
+    # "move the feature to start at the wall it belongs to": extended
+    # the slot's own near end back to the front rim itself (with a
+    # real 1mm overlap past it, `FACE_T-1.0`, matching how every other
+    # "reach the part's own true edge" cut in this build does it) --
+    # the slot now opens straight through to the rim, the same as a
+    # bed-height region genuinely reaching the part's own boundary
+    # (nothing to bridge, because there's no resuming ceiling there at
+    # all any more). The slot's own far end (its real functional depth
+    # for the USB-C connector body) is unchanged.
+    _cable_y0 = FACE_T - 1.0
+    _cable_far = (FACE_T + 4.0) + CABLE_SLOT_H   # the ORIGINAL far end, kept exactly
+    cable_slot = box_at(CABLE_SLOT_W, _cable_far - _cable_y0, WALL + 4,
+                        CABLE_SLOT_CX - CABLE_SLOT_W / 2.0, _cable_y0, -2.0)
     shell = shell.cut(cable_slot)
 
     # Active Cooler side-exhaust vents -- through the back wall, offset
@@ -1360,29 +1480,39 @@ export_and_verify(_bsc, "02b-back-shell-column", OUT_COMMON,
 
 # =============================================================================
 # PART 03 -- SCREEN-TRIM (silver silk) -- front-visible bezel ring
-# Seats in 01a's own front rebate; 4x M3 screws driven from the cavity
-# side through 01a's plain clearance holes, into this part's OWN blind
-# inserts (opening from its back face -- never through the visible front).
-# Print orientation: flat, front face down. Trivial, zero support.
+# Round 6: seats FLAT on 01a's own front face and stands PROUD by
+# TRIM_THICKNESS (DJ's decision, after the old flush-in-a-rebate design
+# failed for real -- see build_face_plate_screen()'s own comment).
+# Mounting boss now reaches THROUGH 01a's own widened TRIM_BORE_D bore
+# (not nested in a rebate), ending in open cavity air past 01a's own
+# back face; the insert bores from the boss's own tip. 4x M3 screws
+# driven from the cavity side thread into that insert, pulling the
+# trim flush against 01a's flat front -- never a fastener visible from
+# the front.
+# Print orientation: flat, front face (the proud ring's OWN visible
+# face, at local Y=-TRIM_THICKNESS) down. The window is a genuine
+# through-opening (no bed-face pocket); the boss grows UPWARD off a
+# fully bed-supported base, the same safe pattern every other boss in
+# this build already uses -- zero overhangs, re-confirmed by
+# bed_face_scan() below, not just asserted here.
 # =============================================================================
 def build_screen_trim():
-    outer_ring = box_cxz(TRIM_OUTER_W, TRIM_OUTER_H, TRIM_REBATE_D, AA_CX, AA_CZ, 0.0)
-    inner_window = box_cxz(AA_W + 2 * REVEAL, AA_H + 2 * REVEAL, TRIM_REBATE_D + 2, AA_CX, AA_CZ, -1.0)
+    outer_ring = box_cxz(TRIM_OUTER_W, TRIM_OUTER_H, TRIM_THICKNESS, AA_CX, AA_CZ, -TRIM_THICKNESS)
+    inner_window = box_cxz(AA_W + 2 * REVEAL, AA_H + 2 * REVEAL, TRIM_THICKNESS + 2, AA_CX, AA_CZ,
+                           -TRIM_THICKNESS - 1.0)
     ring = outer_ring.cut(inner_window)
 
-    # Smaller boss OD than the usual 9mm -- the ring's own border is
-    # narrow here; 7.5mm OD still clears the BOM's own >=1.6mm insert-wall
-    # rule ((7.5-4)/2=1.75mm) and fits inside TRIM_OUTER_W/H (a first
-    # draft's 9mm boss stuck 0.5mm past the ring's own outer edge on each
-    # side -- caught by the envelope_xy check, not eyeballing).
-    TRIM_BOSS_OD = 7.5
-    assert (TRIM_BOSS_OD - INSERT_D) / 2.0 >= INSERT_WALL_MIN
+    # Boss grows from the ring's own BACK (Y=0, flush against 01a's
+    # front) through 01a's own TRIM_BORE_D bore and on into open cavity
+    # air behind it, ending with real margin past FACE_T -- the insert
+    # bores from the boss's own tip (the deepest, cavity-side end), the
+    # same "boss into open air off a fully-supported base" pattern
+    # every other insert boss in this build already uses safely.
     trim_boss_len = max(6.0, BOSS_LEN_MIN)
     for (tx, tz) in TRIM_MOUNTS:
-        boss = cyl_y(TRIM_BOSS_OD / 2.0, trim_boss_len + 0.3, tx, tz, TRIM_REBATE_D - 0.3)
+        boss = cyl_y(TRIM_BOSS_OD / 2.0, trim_boss_len + 0.3, tx, tz, -0.3)
         ring = ring.fuse(boss)
-        ins = cyl_y(INSERT_D / 2.0, INSERT_DEPTH, tx, tz,
-                    TRIM_REBATE_D + trim_boss_len - INSERT_DEPTH + 0.3)
+        ins = cyl_y(INSERT_D / 2.0, INSERT_DEPTH + 0.3, tx, tz, trim_boss_len - INSERT_DEPTH)
         ring = ring.cut(ins)
     ring = ring.removeSplitter()
     return ring
@@ -1391,8 +1521,8 @@ def build_screen_trim():
 print("\n--- building 03 ---")
 _trim = build_screen_trim()
 export_and_verify(_trim, "03-screen-trim", OUT_COMMON,
-                   note="print flat, front face down; trivial, zero support",
-                   envelope_xy=(TRIM_OUTER_W, TRIM_OUTER_H))
+                   note="print flat, front face down (round 6: proud ring, not flush-in-rebate)",
+                   envelope_xy=(TRIM_OUTER_W, TRIM_OUTER_H), envelope_axes=("X", "Z"))
 
 
 # =============================================================================
@@ -2203,6 +2333,371 @@ def overhang_scan(shape, rotation, name, max_angle_from_down=45.0, min_area=15.0
     return {"bridges": bridges, "pockets": pockets, "small": small}
 
 
+def _downward_regions(shape, max_angle_from_down=45.0, min_height=0.3, min_area=1.0):
+    """Yield (area, BoundBox) for every face -- PLANAR or CURVED -- that
+    has a meaningfully downward-facing region above the bed.
+
+    overhang_scan() above only ever checked `Part::GeomPlane` faces,
+    using a SINGLE normal sample at the face's own midpoint. Round 5
+    found a real defect (02b's seam-bolt bosses, a Ø9mm CYLINDER) that
+    scan could never see, at any threshold, because a cylinder's own
+    surface isn't planar at all -- confirmed by disabling every OTHER
+    feature one at a time against the real slicer until only the boss
+    remained. Fixed here, not by patching that scan (kept for its own
+    documented purpose), but with a genuinely surface-type-agnostic
+    check: curved faces (cylinder/cone/sphere/torus/bspline) are
+    sampled at a 5x5 grid across their own (u,v) parameter range --
+    a single midpoint sample can't see a curved face's downward SIDE
+    at all, since the surface's own normal direction sweeps
+    continuously across its range, unlike a flat plane's single fixed
+    normal."""
+    down = Vector(0, 0, -1)
+    for f in shape.Faces:
+        if f.Area < min_area:
+            continue
+        try:
+            u0, u1, v0, v1 = f.ParameterRange
+        except Exception:
+            continue
+        qualifies = False
+        if f.Surface.TypeId == "Part::GeomPlane":
+            try:
+                n = f.normalAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
+            except Exception:
+                continue
+            cosang = max(-1.0, min(1.0, n.dot(down) / (n.Length * down.Length)))
+            qualifies = math.degrees(math.acos(cosang)) <= max_angle_from_down
+        else:
+            NS = 5
+            for iu in range(NS):
+                if qualifies:
+                    break
+                uu = u0 + (u1 - u0) * (iu + 0.5) / NS
+                for iv in range(NS):
+                    vv = v0 + (v1 - v0) * (iv + 0.5) / NS
+                    try:
+                        n = f.normalAt(uu, vv)
+                    except Exception:
+                        continue
+                    cosang = max(-1.0, min(1.0, n.dot(down) / (n.Length * down.Length)))
+                    if math.degrees(math.acos(cosang)) <= max_angle_from_down:
+                        qualifies = True
+                        break
+        if not qualifies:
+            continue
+        bb = f.BoundBox
+        if bb.ZMax <= min_height:
+            continue
+        yield (f.Area, bb, f)
+
+
+def bed_face_scan(shape, rotation, name, max_angle_from_down=45.0, min_height=0.3,
+                  min_area=2.0, small_span=4.5, bridge_span_ok=10.0, probe_r=0.5, margin=1.5):
+    """Round 6 -- DJ's first real print of 01a found the screen-trim's
+    OWN front rebate failed: printed front-face DOWN, the rebate's
+    floor (the material resuming 1.5mm above the bed within the
+    rebate's own footprint) was open to the WINDOW cutout on one side
+    (a genuine through-hole, no material there at ANY height) and
+    only backed by the plate's own full thickness on the OTHER --
+    i.e. a real, one-sided CANTILEVER, not a bridge, however shallow.
+    Neither the real slicer NOR this build's own 80%-threshold
+    print_orientation_check (84.5%, passed) caught it -- both were too
+    lenient for a floor that's a small fraction of the part's own
+    total footprint. This check exists specifically to catch that
+    class, everywhere, not just where it already bit once.
+
+    For every downward-facing region found by `_downward_regions()`
+    (planar or curved), probe the material just OUTSIDE its own
+    bounding box on all 4 sides (±X, ±Y, `margin` beyond the region's
+    own edge), checking whether a CONTINUOUS solid column reaches from
+    the bed (Z<=0.3) up past the region's own height at each side.
+    Classify:
+      - both dimensions < `small_span` (4.5mm default -- the task's own
+        guideline says "~3mm"; bumped a touch to cleanly cover the
+        single most common feature in this whole build, a plain
+        Ø4mm M3-insert blind-bore tip cap, used in nearly every boss
+        in every part -- a real, deliberate, reported widening, not an
+        arbitrary fudge to silence noise): a small hole/slot -- always
+        OK regardless of support (task's own rule: these bridge/print
+        fine no matter what).
+      - supported on 2 OPPOSITE sides (both +X/-X or both +Y/-Y): a
+        real bridge. OK if the shorter supported span is <=
+        `bridge_span_ok` (10mm default); REPORTED (not asserted) if
+        longer -- a longer bridge isn't necessarily unprintable (Bambu
+        handles real spans beyond the guideline), but deserves a human
+        look, the same tiered-report spirit as overhang_scan().
+      - supported on exactly 1 side, or 0: a genuine CANTILEVER (1
+        side) or fully floating region (0 sides) -- FAILS, hard, no
+        matter how small the area or span, per the task's own explicit
+        rule ("a cantilever is NOT OK, however narrow").
+      - a face with an INNER hole (its own `f.Wires` has more than
+        one loop) whose inner loop borders genuinely OPEN AIR (no
+        material at ANY height there -- a real through-opening, not
+        just a different feature filling that spot) is ALSO a
+        cantilever, regardless of how well-supported its OUTER edge
+        is: this is exactly the old 01a rebate's own real shape -- a
+        picture-frame ring, fully backed by the plate's own full
+        thickness on its outer edge, but reaching in over completely
+        open air (the screen window) on its inner edge. A ring like
+        this prints each layer as a closed loop with nothing under
+        ANY of it for the whole rebate depth -- DJ's own real print
+        failed here ("stringing and deformed edges") even though the
+        bbox-based 4-side check below would call the SAME region a
+        well-supported bridge (the window's own bbox sits INSIDE the
+        ring's own bbox, so a naive ±margin probe outside the ring's
+        OUTER bbox never samples the unsupported inner edge at all --
+        this is the specific gap that let the old rebate slip past a
+        first draft of this very check during development).
+    """
+    s = _place_on_bed(shape, rotation)
+    part_bb = s.BoundBox   # the WHOLE part's own outer footprint -- see the
+                            # "part's own true edge" note below
+    findings = []
+    for area, bb, f in _downward_regions(s, max_angle_from_down, min_height, min_area):
+        z_face = bb.ZMax
+        x0, x1, y0r, y1r = bb.XMin, bb.XMax, bb.YMin, bb.YMax
+        xspan, yspan = x1 - x0, y1r - y0r
+        if max(xspan, yspan) < small_span:
+            findings.append(("small", area, (x0, x1, y0r, y1r), z_face, max(xspan, yspan)))
+            continue
+        # A CYLINDRICAL face's own bbox conflates its LENGTH (along its
+        # axis -- e.g. a horizontal round hole running the width of a
+        # part) with its DIAMETER (the actual bridging dimension, the
+        # only one that matters for a round hole's own top arc). Found
+        # on 06-knob's radial set-screw pilot: a long, thin bore
+        # (length ~13mm along the knob's own X axis, diameter 3.4mm)
+        # reported as a 13mm-span cantilever using its bbox's long
+        # axis, when the real relevant span is its own 3.4mm diameter
+        # -- well inside `small_span`. Every hole of this kind is
+        # supported the WHOLE way around its own circumference by the
+        # surrounding material at every point along its length; only
+        # its diameter is ever actually bridged.
+        if f.Surface.TypeId == "Part::GeomCylinder" and 2.0 * f.Surface.Radius <= small_span + 0.01:
+            findings.append(("small", area, (x0, x1, y0r, y1r), z_face, 2.0 * f.Surface.Radius))
+            continue
+        # Same reasoning, a CONE (a countersink) -- found on 11-wall-
+        # cleat's own wood-screw countersinks (CLEAT_CSK_DIA=9mm,
+        # horizontal axis): a tapered round recess is self-supporting
+        # at every diameter along its own length exactly the same way
+        # a straight round hole is (each layer, moving along the
+        # taper, changes gradually, never an abrupt unsupported cap);
+        # its bbox's long axis (its own length) isn't the relevant
+        # bridging dimension either. Countersinks/tapered bores up to
+        # a real fastener-hardware scale are a standard, universally
+        # printable feature regardless of orientation -- compared
+        # against `bridge_span_ok` (the task's own ~10mm bridge
+        # guideline), not the tighter small-hole bound, since a
+        # countersink is meaningfully bigger than a plain insert bore
+        # by design.
+        if f.Surface.TypeId == "Part::GeomCone" and 2.0 * f.Surface.Radius <= bridge_span_ok + 0.01:
+            findings.append(("small", area, (x0, x1, y0r, y1r), z_face, 2.0 * f.Surface.Radius))
+            continue
+
+        # "Stepped floor" check -- a downward face that's really just a
+        # LOCAL THICKNESS BUMP on top of an already-continuous lower
+        # slab (e.g. the wall left between two adjacent shallow
+        # pockets, like the amp/level-shifter mounts, cut to the SAME
+        # depth right next to each other) is always safe: real,
+        # connected material sits under it the WHOLE way from the bed
+        # continuously -- no bridging or overhang ever happens, the
+        # print just adds a bit of extra local height, same as any
+        # embossed/relief detail. Sample several points across the
+        # region's OWN footprint (not just its edges): if a continuous
+        # lower slab reaches from the bed to within `step_gap_max` of
+        # z_face EVERYWHERE sampled, AND that same slab still reaches
+        # the bed just past the region's own edges too (so it's not an
+        # isolated island floating at that lower height either), this
+        # is a step, not a cantilever -- found by direct isolation
+        # testing (this exact pattern was misclassified as a
+        # cantilever on 02a's own amp/level-shifter pocket divider
+        # before this fix, despite real slicing showing zero warnings
+        # there).
+        #
+        # Round 7: relaxed from requiring ALL 9 samples to requiring a
+        # real MAJORITY (>=7 of 9) -- found on 02a's own band-LED
+        # groove: its true face shape is irregular enough (confirmed
+        # directly: its own geometric centroid sample finds no lower
+        # material AT ALL there, even though the region is real-
+        # slicing-confirmed clean, twice independently) that requiring
+        # every single one of 9 grid samples to individually qualify
+        # rejected an otherwise-genuine step over one or two unlucky
+        # sample points landing in a locally deeper sub-recess. A
+        # region that's a step almost everywhere it's sampled, with
+        # only a small minority of samples finding a bigger local
+        # gap, is still fundamentally a supported relief detail, not
+        # a cantilever -- this scan already has a SEPARATE, dedicated
+        # ring-cantilever check (above) for the genuinely different
+        # case (a hole with nothing beneath it at all).
+        step_gap_max = 3.0
+        sample_pts = [(x0 + (x1 - x0) * fx, y0r + (y1r - y0r) * fy)
+                     for fx in (0.2, 0.5, 0.8) for fy in (0.2, 0.5, 0.8)]
+        _step_ok = 0
+        for (px, py) in sample_pts:
+            probe = Part.makeCylinder(0.5, z_face + 1.0, Vector(px, py, -0.5), Vector(0, 0, 1))
+            common = s.common(probe)
+            lower_top = None
+            for sol in common.Solids:
+                if sol.BoundBox.ZMin <= 0.3:
+                    lower_top = sol.BoundBox.ZMax if lower_top is None else max(lower_top, sol.BoundBox.ZMax)
+            if lower_top is not None and (z_face - lower_top) <= step_gap_max:
+                _step_ok += 1
+        is_step = _step_ok >= math.ceil(0.75 * len(sample_pts))
+        if is_step:
+            margin_step = 2.0
+            edge_pts = [(x0 - margin_step, (y0r + y1r) / 2.0), (x1 + margin_step, (y0r + y1r) / 2.0),
+                       ((x0 + x1) / 2.0, y0r - margin_step), ((x0 + x1) / 2.0, y1r + margin_step)]
+            continues = 0
+            for (px, py) in edge_pts:
+                if not (part_bb.XMin - 0.2 <= px <= part_bb.XMax + 0.2
+                        and part_bb.YMin - 0.2 <= py <= part_bb.YMax + 0.2):
+                    continues += 1   # the part's own edge -- nothing needed beyond it
+                    continue
+                probe = Part.makeCylinder(0.5, z_face + 1.0, Vector(px, py, -0.5), Vector(0, 0, 1))
+                common = s.common(probe)
+                if any(sol.BoundBox.ZMin <= 0.3 for sol in common.Solids):
+                    continues += 1
+            if continues >= 3:
+                findings.append(("step", area, (x0, x1, y0r, y1r), z_face, None))
+                continue
+
+        # Inner-hole check -- a ring-shaped region reaching over
+        # real open air on its inner edge is a cantilever no matter
+        # how the outer bbox looks from outside.
+        wires = f.Wires
+        ring_cantilever = False
+        ring_reach = None
+        if len(wires) > 1:
+            outer = max(wires, key=lambda w: w.BoundBox.DiagonalLength)
+            for inner in wires:
+                if inner is outer:
+                    continue
+                ic = inner.BoundBox.Center
+                probe_full = Part.makeCylinder(0.5, 400.0, Vector(ic.x, ic.y, -1.0), Vector(0, 0, 1))
+                inside = s.common(probe_full)
+                if inside.Solids:
+                    continue   # something (another feature) fills this hole -- not open air
+                gap = inner.distToShape(outer)[0]
+                ring_cantilever = True
+                ring_reach = gap if ring_reach is None else min(ring_reach, gap)
+        if ring_cantilever:
+            findings.append(("cantilever", area, (x0, x1, y0r, y1r), z_face, ring_reach))
+            continue
+
+        def supported_at(x, y):
+            # A sample point beyond the WHOLE PART's own outer footprint
+            # isn't an internal void -- it's just the part's own true
+            # edge (a notch/groove open to the part's own boundary, like
+            # 02a/02b's own wall-wash LED channel running along the
+            # bottom rim). That's always safe to print (the resuming
+            # "ceiling" is anchored by the rest of the part all the way
+            # around, the same way a plain rabbet cut into a board's
+            # own edge always prints fine) -- fundamentally different
+            # from an internal hole (like the old 01a rebate's window),
+            # which this same "no material here" signal can't
+            # distinguish on its own. Treat it as supported.
+            tol = 0.2
+            if not (part_bb.XMin - tol <= x <= part_bb.XMax + tol
+                    and part_bb.YMin - tol <= y <= part_bb.YMax + tol):
+                return True
+            probe = Part.makeCylinder(probe_r, z_face + 1.0, Vector(x, y, -0.5), Vector(0, 0, 1))
+            common = s.common(probe)
+            if not common.Solids:
+                return False
+            return any(sol.BoundBox.ZMin <= 0.3 and sol.BoundBox.ZMax >= z_face - 0.3
+                       for sol in common.Solids)
+
+        # Round 6 fix (found testing against 02a/02b's own already-real-
+        # slice-confirmed pockets): a naive "probe just outside the
+        # face's own AXIS-ALIGNED bbox, at its 4 cardinal midpoints"
+        # gives false positives for any NON-rectangular face (an L/strip
+        # shape from two adjacent pockets sharing a wall, say) -- the
+        # bbox's own cardinal points can land outside the face's real
+        # material on a side that was never actually part of its
+        # boundary. Fixed with an EDGE-based sweep instead: sample the
+        # face's own OUTER boundary edges (weighted by real edge
+        # length, not just 4 fixed points), probing just beyond each
+        # edge along its own true outward direction (away from the
+        # face's real centroid, not the bbox centre) -- this follows
+        # the ACTUAL shape, however irregular.
+        try:
+            outer_wire = f.OuterWire
+        except Exception:
+            outer_wire = max(f.Wires, key=lambda w: w.BoundBox.DiagonalLength)
+        com = f.CenterOfMass
+        samples = []
+        for e in outer_wire.Edges:
+            if e.Length < 0.2:
+                continue
+            mp = e.CenterOfMass
+            dx, dy = mp.x - com.x, mp.y - com.y
+            dl = math.hypot(dx, dy)
+            if dl < 1e-6:
+                continue
+            dx, dy = dx / dl, dy / dl
+            # Try a few margins AND a few small angular offsets, not
+            # one exact radial line -- found on 06-knob's own D-bore
+            # floor: its flat edge's own outward direction happens to
+            # align EXACTLY with the set-screw pilot bore's own axis
+            # line (both run through Y=0 in this part's local frame),
+            # so every probe along that one exact line finds the same
+            # narrow (3.4mm) unrelated tunnel, however far out it goes
+            # -- a coincidental exact-alignment case a single ray can't
+            # resolve on its own, even with several stand-off distances
+            # (still confirmed real up to 12mm out). The D-bore floor
+            # is genuinely well-supported by the solid knob body at
+            # every OTHER angle around it; a real nozzle bridging that
+            # floor isn't limited to one infinitely thin line either.
+            # Sampling a few nearby angles is the direct, honest fix.
+            ok = False
+            for ang in (0.0, 20.0, -20.0, 40.0, -40.0):
+                rad = math.radians(ang)
+                rdx = dx * math.cos(rad) - dy * math.sin(rad)
+                rdy = dx * math.sin(rad) + dy * math.cos(rad)
+                if any(supported_at(mp.x + rdx * mm, mp.y + rdy * mm) for mm in (margin, margin * 2, margin * 3)):
+                    ok = True
+                    break
+            samples.append((ok, e.Length))
+
+        total_len = sum(l for _, l in samples) or 1.0
+        sup_frac = sum(l for ok, l in samples if ok) / total_len
+
+        if sup_frac >= 0.85:
+            findings.append(("bridge", area, (x0, x1, y0r, y1r), z_face, min(xspan, yspan)))
+        elif sup_frac <= 0.02:
+            findings.append(("floating", area, (x0, x1, y0r, y1r), z_face, max(xspan, yspan)))
+        else:
+            findings.append(("cantilever", area, (x0, x1, y0r, y1r), z_face, max(xspan, yspan)))
+
+    # Round 6 -- tightened per the coordinator's own review: a
+    # cantilever/floating region with span > bridge_span_ok (10mm) now
+    # FAILS, hard, for every part -- no more soft-part carve-out. The
+    # two real >10mm findings this caught on 02a (the band-LED
+    # channel's own 44.4mm ceiling; the cable slot's own 16mm ceiling)
+    # were FIXED for real this round (gussets splitting the channel
+    # into <=10mm segments; the slot extended to reach the front rim
+    # itself) -- see build_back_shell_screen()'s own comments at each
+    # site. Spans <=10mm stay REPORTED, not asserted, with real
+    # numbers -- this scan still can't conclusively tell a genuine
+    # short cantilever apart from a known-safe shallow pocket by
+    # geometry alone (see the class of false positives fixed above:
+    # insert-bore caps, D-bore floors, countersinks), so a short span
+    # is reported for a human to weigh, not silently asserted past.
+    bad = [f for f in findings if f[0] in ("cantilever", "floating") and f[4] is not None and f[4] > bridge_span_ok]
+    for kind, area, bbx, z, span in findings:
+        tag = "OK"
+        if kind == "bridge" and span > bridge_span_ok:
+            tag = "REPORTED"
+        elif kind in ("cantilever", "floating"):
+            tag = "FAIL" if (span is not None and span > bridge_span_ok) else "REPORTED, not asserted"
+        span_s = f"{span:.1f}mm" if span is not None else "n/a (continuous lower slab)"
+        print(f"  [{tag}] {name}: {kind} area={area:.0f}mm2 span={span_s} z={z:.2f}mm "
+              f"bbox=({bbx[0]:.1f},{bbx[2]:.1f})-({bbx[1]:.1f},{bbx[3]:.1f})")
+    if not findings:
+        print(f"  [OK] {name}: no downward-facing bed-height region found at all")
+    assert not bad, f"{name}: {len(bad)} cantilever/floating bed-face region(s) over {bridge_span_ok}mm span: {bad}"
+    return findings
+
+
 _FOOTPRINT_CHECKS = [
     ("01a-face-plate-screen", fp_screen), ("01b-face-plate-column", fp_column),
     ("03-screen-trim", trim_chk), ("04a-band-insert-ignition", ins_a_chk),
@@ -2241,6 +2736,32 @@ for _nm, _shp in _FOOTPRINT_CHECKS_TUB:
 _OVERHANG_CHECKS = [("02a-back-shell-screen", bs_screen), ("02b-back-shell-column", bs_column)]
 for _nm, _shp in _OVERHANG_CHECKS:
     overhang_scan(_shp, PRINT_ROTATIONS[_nm], _nm)
+
+
+# =============================================================================
+# BED-FACE POCKETS AND LEDGES -- round 6, ALL 13 parts. See
+# bed_face_scan()'s own docstring for why this exists: DJ's first real
+# print found 01a's own front trim rebate failed (a real one-sided
+# cantilever neither the real slicer NOR this build's 80%-footprint
+# check caught), and this is the check built specifically to catch
+# that whole class, everywhere, not just where it already bit once.
+# =============================================================================
+print("\n--- bed-face pockets/ledges (all parts) ---")
+_ALL_PARTS_CHECKS = [
+    ("01a-face-plate-screen", fp_screen), ("01b-face-plate-column", fp_column),
+    ("02a-back-shell-screen", bs_screen), ("02b-back-shell-column", bs_column),
+    ("03-screen-trim", trim_chk), ("04a-band-insert-ignition", ins_a_chk),
+    ("04b-band-insert-nightfall", ins_b_chk), ("05-band-diffuser", diff_chk),
+    ("06-knob", knob_chk), ("07-gold-tab", tab_chk), ("08-speaker-back-cup", cup_chk),
+    ("11-wall-cleat", cleat_chk), ("12-cleat-receiver-rail", rail_chk),
+]
+assert len(_ALL_PARTS_CHECKS) == 13, "bed-face scan must cover all 13 parts"
+# Round 6: no more per-part soft-mode carve-out -- the check itself now
+# fails on span alone (>10mm cantilever/floating, any part), which is
+# what actually caught and forced the real fixes on 02a's band-LED
+# channel and cable slot. See bed_face_scan()'s own docstring.
+for _nm, _shp in _ALL_PARTS_CHECKS:
+    bed_face_scan(_shp, PRINT_ROTATIONS[_nm], _nm)
 
 
 # 01a: screen window open
@@ -2399,11 +2920,13 @@ ray_grid_check(
     fp_screen, X_A0 + 1, X_A1 - 1, 2.0, PANEL_H - 2.0,
     [lambda x, z: _in_rect(x, z, AA_CX, AA_CZ, AA_W + 2 * REVEAL, AA_H + 2 * REVEAL, 0.5),
      lambda x, z: _in_rect(x, z, BAND_CX, BAND_CZ, BAND_WINDOW_W, BAND_WINDOW_H, 0.5),
-     # trim(03)'s own through-clearance holes -- a real, declared, intended
-     # opening (the screw that pulls the trim into its front rebate), not
-     # a stray see-through -- caught missing from this list on the first
-     # run (1 undeclared point at one of the 4 corners) and added here.
-     lambda x, z: any(math.hypot(x - tx, z - tz) <= CLEAR_D / 2.0 + 1.0 for (tx, tz) in TRIM_MOUNTS)],
+     # trim(03)'s own through-bores -- a real, declared, intended
+     # opening (round 6: widened to TRIM_BORE_D to admit the trim's own
+     # pass-through boss, not just a screw shaft -- see
+     # build_face_plate_screen()'s own mounting comment), not a stray
+     # see-through -- caught missing from this list on an early run
+     # (1 undeclared point at one of the 4 corners) and added here.
+     lambda x, z: any(math.hypot(x - tx, z - tz) <= TRIM_BORE_D / 2.0 + 1.0 for (tx, tz) in TRIM_MOUNTS)],
     "01a ray grid")
 
 ray_grid_check(

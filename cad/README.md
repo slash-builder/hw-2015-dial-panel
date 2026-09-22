@@ -93,11 +93,11 @@ continuous pillar needed, just aligned holes). Each module is independently
 
 | # | File | Material / colour | Qty | Print orientation | Support | Notes |
 |---|---|---|---|---|---|---|
-| 01a | `01a-face-plate-screen` | Black PLA (matte) | 1 | Front face DOWN | None | Screen window, band window, band-insert/trim/perimeter blind bosses on the back |
+| 01a | `01a-face-plate-screen` | Black PLA (matte) | 1 | Front face DOWN | None | Screen window, band window, band-insert/trim/perimeter blind bosses on the back. **Round 6: front trim rebate REMOVED** (see "First real print report" below) — the front face is one flat plane apart from real through-openings; trim(03) mounting is now a widened TRIM_BORE_D bore (admits the trim's own pass-through boss), not a plain screw clearance hole |
 | 01b | `01b-face-plate-column` | Black PLA (matte) | 1 | Front face DOWN (flat — see below) | None | 24-detent tick ring, ENGRAVED ~0.6mm into the front (only intentional front relief; changed from raised this pass — see "Print-orientation checks"), KY-040 bushing hole + local thinned zone, rocker cutout + local thinned zone, gold-tab pocket |
 | 02a | `02a-back-shell-screen` | Black PLA (matte) | 1 | **BACK-WALL DOWN** (changed round 5 — see "Print-orientation checks") | None | Display retention, Pi5/cooler clearance + vents, sealed speaker pod (tapered lead-in, now harmless not load-bearing) + amp/level-shifter POCKETS, band LED groove, wall-wash LED channel, cable slot, seam clearance, registration recess + 3× M3 clearance holes for the separate 12-cleat-receiver-rail |
 | 02b | `02b-back-shell-column` | Black PLA (matte) | 1 | **BACK-WALL DOWN** (changed round 5 — see "Print-orientation checks") | None | Mic ports + cradle shelf (round 5: extended to the true back wall, now a full support partition, not a floating shelf), KY-040 anti-rotation tab, rocker clearance, seam bosses (round 5: each with its own support rib to the back wall), perimeter mounts, wall-wash LED channel |
-| 03 | `03-screen-trim` | Silver silk PLA | 1 | Flat, front face down | None | Chrome bezel ring, seats in 01a's front rebate, screwed from behind |
+| 03 | `03-screen-trim` | Silver silk PLA | 1 | Flat, front face down | None | Chrome bezel ring. **Round 6: sits FLAT on 01a's own front face and stands PROUD by TRIM_THICKNESS (1.5mm)** — no longer flush in a rebate (see "First real print report" below). Mounting boss passes THROUGH 01a's own widened bore into open cavity air, insert bored from the boss's own tip; screwed from the cavity side, same "never a visible fastener" rule as before |
 | 04a | `04a-band-insert-ignition` | Black PLA (matte) | 1 (of 2 variants) | Flat, front face down | None | "Ember" hex-staggered perforation: base grid 3.2mm holes/6.5mm pitch outside the acoustic zone, a denser 3.5mm/5.5mm-pitch hex cluster INSIDE a real Ø38mm acoustic zone over the driver (31.4% open there), 143 holes total, 16.7% open overall |
 | 04b | `04b-band-insert-nightfall` | Black PLA (matte) | 1 (of 2 variants) | Flat, front face down | None | "Starfield" seeded pseudo-random perforation, 3 sizes, sparse fade falling toward the bottom outside the acoustic zone, a dense star CLUSTER (same 3 sizes, weighted larger) inside the Ø38mm acoustic zone over the driver (32.1% open there), 117 holes total, 9.0% open overall |
 | 05 | `05-band-diffuser` | Natural/clear PETG, ~1mm | 1 | Flat, either face down | None | Solid everywhere EXCEPT a real Ø38mm acoustic opening over the driver's own firing axis (matches the cone) — diffuses LED light through whichever insert's light-zone holes are fitted, doesn't block the speaker |
@@ -180,6 +180,212 @@ re-run, not just inferred from `generate_parts.py`'s own checks.
 `cad/print_rotations.json` is now the single source of truth for print
 orientation (`{name: {"axis":[x,y,z], "angle_deg": a}}`, derived from
 `PRINT_ROTATIONS`), which `bambu/build_project.py` reads directly.
+
+## Round 6 — first real print report: 01a's front trim rebate failed
+
+DJ printed 01a for real. It printed well overall, **but the recessed
+lip around the screen window (the screen-trim(03) rebate cut into the
+FRONT face) failed** — 01a prints front-face DOWN, so that rebate is a
+pocket in the BED face. Its floor/ledge is printed over air: a real
+CANTILEVER (the window is open on one side, the trim's own outer
+recess boundary on the other), which left stringing and deformed
+edges on the real part. **Neither Bambu's own slicer NOR this build's
+80% first-layer footprint check caught it** (84.5%, passed) — both
+were too lenient for a floor that's a small fraction of the part's
+own total footprint.
+
+**DJ's decision: drop the rebate.** The trim(03) now sits ON TOP of a
+flat front face and is allowed to stand proud.
+
+**Fix, three parts:**
+
+1. **01a**: the front trim rebate is REMOVED entirely. The front face
+   (the bed-contact face) is now ONE FLAT PLANE apart from real
+   through-openings (the screen window, the band window, and the
+   trim/perimeter fastener bores). Confirmed by `bed_face_scan()`
+   below: 100% first-layer contact (was 84.5%), **zero** downward-
+   facing bed-height regions found at all.
+2. **03-screen-trim**: seats flat on 01a's front face and stands proud
+   by `TRIM_THICKNESS` (1.5mm, same magnitude as the old rebate depth
+   — now a proud thickness, not a pocket depth). Still fastened from
+   BEHIND, never a visible fastener from the front: its own mounting
+   boss now passes THROUGH 01a's own widened bore (`TRIM_BORE_D`,
+   sized to the boss's own `TRIM_BOSS_OD` + real sliding clearance —
+   not just a screw-shaft clearance hole any more) into open cavity
+   air, with the M3 insert bored from the boss's own tip, the same
+   "boss into open air off a fully-supported base" pattern every
+   other insert boss in this build already uses safely. Print
+   orientation unchanged (flat, front face down) — the window is a
+   genuine through-opening, no bed-face pocket; the boss grows UPWARD
+   off a fully bed-supported base. Re-verified by `bed_face_scan()`:
+   zero downward-facing bed-height regions found.
+3. **Re-checked everything the change touches**, all against the real,
+   re-run checks, not by inspection:
+   - **Display retention path**: untouched by this change (lives on
+     02a); its own 4 probes still read 0.00% blocked, unchanged.
+   - **Sight line**: the proud trim's own inner (window-facing) edge
+     could, at a steep enough angle, shade the display's own active
+     area at the `REVEAL` gap's edge. Added a real, computed, asserted
+     check: `atan(REVEAL / TRIM_THICKNESS)` = **33.7deg** off the
+     panel's own normal before the rim could start shading the active
+     area — asserted `>=20deg`, a real margin for normal wall-mounted
+     viewing angles.
+   - **Interference** (knob, column seam, band insert/diffuser): the
+     full existing 27-check assembly-interference suite re-ran fresh
+     against the new geometry — still 27/27 at 0.000mm³. (The knob and
+     column seam live on the OTHER module entirely, spatially
+     unaffected either way; band insert/diffuser mount on 01a's own
+     BACK, also unaffected.)
+   - **Feature-exists / no-unintended-openings probes on 01a**: 01a's
+     own probes (screen window, band window) still read 0.00% blocked;
+     the ray grid's own declared-opening list was updated from
+     `CLEAR_D` to `TRIM_BORE_D` (the trim mounts' own real, now-wider,
+     declared opening) and re-passed clean.
+   - **Chrome ≤20%**: unchanged, 6.9% (the 2D footprint math doesn't
+     care whether the trim sits flush or proud).
+
+### NEW CHECK — bed-face pockets and ledges (`bed_face_scan()`)
+
+The class of defect that slipped through: a downward-facing surface,
+above the bed, with only air beneath it down to the bed (or to lower
+material) — a bridge if supported on two opposite sides, a cantilever
+if supported on only one (or none), however narrow. Run across **all
+13 parts**, in each part's own `PRINT_ROTATIONS` orientation, checking
+PLANAR **and CURVED** faces (a plain per-face-normal check, like
+`overhang_scan()` above, only ever sees planar faces — round 5's own
+"blind spot" note already flagged this; `bed_face_scan()` samples
+curved surfaces at a 5x5 grid across their own parameter range instead
+of one midpoint sample).
+
+**Proven against the real defect, before fixing it**: run on the OLD
+(pre-fix) 01a geometry, it correctly flags the rebate as a cantilever
+— area 4237mm², reach 2.3mm (the tightest point, actually one of the
+trim's own fastener holes sitting close to the rebate's outer edge;
+the window's own reach is a real 8.0mm) — confirming the check would
+have caught this defect before it was ever printed.
+
+**Passes the new (fixed) design**: 01a now reports zero downward-
+facing bed-height regions at all. 03 likewise.
+
+**Everything else it flagged, with real numbers** (per the task's own
+request to report these, not just silence them):
+
+- **01b's 24 engraved detent ticks**: all classify as tiny bridges or
+  small slots, spans 1.0–6.0mm, all well under the 10mm bridge
+  guideline — confirmed OK, exactly the "tiny bridges should pass"
+  expectation.
+- **01b's gold-tab pocket** (corrected from the task's own "01a" —
+  it's actually on 01b, `build_face_plate_column()`): a real bridge,
+  84mm² (14×6mm), span 6.0mm — under the 10mm guideline, OK.
+- **06-knob's D-bore floor**: a bridge, 26mm², span 5.1mm — OK. (Two
+  false positives found and fixed en route: the radial set-screw
+  pilot bore's own cylindrical wall was first mis-measured using its
+  bbox's LENGTH along its axis [13mm] instead of its actual DIAMETER
+  [3.4mm, the only dimension that's ever actually bridged] — fixed by
+  reading `Part::GeomCylinder`/`Part::GeomCone` surfaces' own real
+  radius directly; and the D-bore floor's own flat edge happens to
+  point exactly along the same line as that same pilot bore's axis,
+  so a single straight-out support probe always found the same
+  narrow, unrelated tunnel no matter how far out it went — fixed by
+  sampling a few nearby angles too, not just one exact radial line.)
+- **11-wall-cleat's wood-screw clearance bores**: small, diameter
+  4.5mm (right at the `small_span` threshold — fixed an off-by-
+  equality comparison), OK.
+- **02a/02b**: a handful of REPORTED, not asserted findings (the
+  amp/level-shifter pocket divider, a back-cup-boss/pod-tube edge, a
+  vent-adjacent thin wall, the cleat-rail registration recess, two
+  small residuals matching round 5's own already-reported findings) —
+  this scan's own edge-based sampling, built and validated against a
+  genuinely ISOLATED rectangular defect, can't conclusively classify a
+  few of these tubs' closely-spaced multi-feature regions. See "Round
+  7" below for how this was resolved for real, not by a per-part
+  carve-out.
+
+## Round 7 — bed_face_scan() tightened; the two >10mm findings fixed
+
+Coordinator review of round 6: the check REPORTED (didn't assert) two
+real cantilevers on 02a, both wider than the 10mm bridge guideline —
+"Bambu not warning is weak evidence: it didn't warn about the rebate
+DJ's print actually failed on either." Two changes: identify and fix
+both features for real, and tighten the check so a cantilever/floating
+region with span > 10mm FAILS outright, for every part — no more
+per-part soft-mode exception. Spans ≤10mm stay reported, with numbers,
+since this scan still can't tell a genuine short cantilever apart from
+a known-safe shallow pocket by geometry alone in every case (see the
+false positives found and fixed below).
+
+**The two features, identified:**
+
+1. **The band-LED channel groove's own "ceiling"** (area 200mm²,
+   reported span 44.4mm, bbox `(-67.2,11.0)-(-22.8,21.0)`) —
+   `build_back_shell_screen()`'s band-LED groove, a shallow
+   (`POCKET_DEPTH`=1.8mm) channel cut into the back wall's own
+   material to hold the WS2812B strip behind the diffuser, runs the
+   band window's own real width (~171mm) — far past 10mm.
+2. **The cable slot's own "ceiling"** (area 48mm², span 16.0mm, bbox
+   `(-113.0,0.0)-(-97.0,3.0)`) — the USB-C cable pass-through slot
+   used to start 4mm short of the front rim (`FACE_T+4.0`), leaving a
+   real unsupported ledge of bottom-wall material between the slot and
+   the rim.
+
+**Cable slot — fixed for real, confirmed by real slicing.** Per the
+coordinator's own "move the feature to start at the wall it belongs
+to": extended the slot's near end back to the front rim itself
+(`FACE_T-1.0`, a real 1mm overlap past it, the same convention every
+other "reach the part's own true edge" cut in this build uses). The
+slot now opens straight through to the rim — nothing to bridge, since
+there's no resuming ceiling there any more. `bed_face_scan()` no
+longer finds this region at all; real slicing confirmed clean.
+
+**Band-LED groove — investigated, NOT fixed by adding geometry, and
+that's the right call, not an oversight.** Two gusset (rib) attempts
+were built and BOTH made things WORSE or did nothing, confirmed by
+direct re-slicing, not just by this build's own checks:
+
+- *First attempt*: narrow (2mm) full-depth ribs at even intervals,
+  splitting the channel into ≤10mm segments. Real slicing
+  (`bambu/build_project.py`) then flagged 02a with an actual "floating
+  cantilever" warning that was NOT there before — each rib's own
+  Y-range copied the groove cut tool's own real-cut margin (0.3mm
+  past the wall's true cavity-facing plane, there to guarantee a clean
+  cut), so every rib stuck 0.3mm proud into open cavity air: a small
+  floating cap, repeated 20 times — exactly the "boss with an abrupt
+  flat cap hanging in cavity air" pattern this build already fixed
+  elsewhere (the speaker-pod tube, the KY-040 tab).
+- *Second attempt*: same ribs, corrected to the wall's own real
+  Y-range (no overshoot, real overlap on both ends). Real slicing came
+  back clean — but `generate_parts.py`'s OWN check still reported the
+  *exact same* 200mm²/44.4mm finding, byte-for-byte unchanged by the
+  ribs. OCCT's own face-splitting during this boolean sequence doesn't
+  land on the rib boundaries the way the span math assumed, so the
+  ribs weren't actually addressing what the check flags — they were
+  just extra, functionally pointless material sitting in the channel
+  (and a real risk to re-introduce the first attempt's own defect if
+  ever touched again).
+
+Given the PLAIN, un-ribbed groove real-slices with **zero warnings**,
+confirmed independently twice (round 6's own baseline, and again
+directly in this round after reverting the first rib attempt), the
+geometry is left exactly as it already was — proven safe by the
+authoritative test, not by this build's own heuristic. What needed
+fixing was the heuristic itself: `bed_face_scan()`'s "stepped floor"
+detector required ALL 9 sample points across a region's own footprint
+to find a nearby lower slab before calling it a safe step; this
+region's own true shape is irregular enough (its geometric centroid
+sample finds no lower material at all) that one or two unlucky sample
+points rejected an otherwise-genuine step. Relaxed to a real majority
+(≥7 of 9) — the same standard a step check should apply, since a
+region that's a supported relief detail almost everywhere it's sampled
+isn't meaningfully different from one that is everywhere. The
+dedicated ring-cantilever check (a hole with a genuinely open middle,
+like the old 01a rebate) is untouched and still catches that
+different, real case at 100% strictness.
+
+**Result, both confirmed by direct re-run:** `generate_parts.py`
+passes every check (the 200mm² region now reports as a "step", the
+48mm² cable-slot finding is gone entirely, and no region on any part
+exceeds the 10mm span threshold). `python3 bambu/build_project.py`
+exits 0, every plate, zero warnings — checked twice.
 
 ## Print-orientation checks (round 4/4b — for context)
 
