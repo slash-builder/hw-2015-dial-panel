@@ -178,6 +178,11 @@ docs/                wiring, config.txt, choosing a team, release drawings
 
 ## Contributing
 
+Real print reports are the most useful thing you can send: see
+[`docs/print-log.md`](docs/print-log.md) for what has been printed so far and
+what to check.
+
+
 Issues and pull requests are welcome, especially fit reports from real
 prints (printer, filament, what fit and what didn't). Geometry changes go in
 `cad/generate_parts.py`, then regenerate. A change isn't done until every
