@@ -510,8 +510,8 @@ build's own console output.
    back-cup (08) on from the true exterior back, 4× M3, sealing the
    30–60cc back chamber.
 2. **01a (screen face-plate):** heat-set the trim(03) and band(04/05)
-   blind bosses on its own back. Screw the screen-trim (03) into its
-   front rebate from behind. Stack the chosen band insert (04a or 04b) +
+   blind bosses on its own back. Screw the screen-trim (03) onto the
+   front face from behind — it sits proud, there is no rebate (round 6). Stack the chosen band insert (04a or 04b) +
    diffuser (05) behind the band window and screw both into the same
    bosses. Lay the WS2812B strip in the band-LED trough and the
    perimeter LED strip in the wall-wash channel (both on 02a, both

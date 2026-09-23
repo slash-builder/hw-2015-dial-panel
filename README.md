@@ -133,8 +133,7 @@ Studio and re-slice. For other slicers, use the STLs in `stl/`.
 6. **Close up:** fit your team's band insert and the diffuser, lay in the LED strips, screw the face plates on, and bolt the two modules together.
 7. **Hang it:** screw the cleat to the wall and drop the panel onto it.
 
-The full step-by-step, with the fastener count for each joint, is the
-"Assembly order" in [`cad/README.md`](cad/README.md).
+**Full step-by-step with a drawing for each step:** [`docs/assembly.md`](docs/assembly.md).
 
 ## How it's checked
 

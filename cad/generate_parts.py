@@ -977,6 +977,7 @@ export_and_verify(_fpc, "01b-face-plate-column", OUT_COMMON,
 
 
 def build_back_shell_screen():
+    global _band_led_env, _wash_led_env_a
     y0, y1 = FACE_T, PANEL_D
     outer = box_at(SCREEN_MODULE_W, y1 - y0, PANEL_H, X_A0, y0, 0.0)
 
@@ -1128,6 +1129,10 @@ def build_back_shell_screen():
     band_led_groove = box_cxz(band_led_len, BAND_LED_W, POCKET_DEPTH + 0.3,
                               BAND_CX, band_led_cz, band_led_y0)
     shell = shell.cut(band_led_groove)
+    # Captured for assembly_placements.json's own "hardware" LED-run
+    # proxy -- the EXACT same cutting-tool shape/position used above,
+    # not a re-derived copy.
+    _band_led_env = band_led_groove.copy()
 
     # Round 6/7 -- coordinator found this groove's own "ceiling" is a
     # real, un-asserted cantilever -- this groove runs the band
@@ -1186,6 +1191,7 @@ def build_back_shell_screen():
     wash_bottom = box_cxz(SCREEN_MODULE_W - 2 * WALL - 4.0, WASH_LED_W, WASH_LED_D + 0.5,
                          (X_A0 + X_A1) / 2.0, wash_z, PANEL_D - WASH_LED_D + 0.3)
     shell = shell.cut(wash_bottom)
+    _wash_led_env_a = wash_bottom.copy()   # captured for assembly_placements.json, same tool/position
 
     # Cable slot -- straight USB-C plug clearance, THROUGH the bottom wall
     # (Z=0..WALL), off to one side clear of the speaker pod. X=width,
@@ -1311,6 +1317,7 @@ export_and_verify(_bss, "02a-back-shell-screen", OUT_COMMON,
 # bridges the whole flat back wall with nothing under it).
 # =============================================================================
 def build_back_shell_column():
+    global _wash_led_env_b
     y0, y1 = FACE_T, COLUMN_PANEL_D
     outer = box_at(COLUMN_MODULE_W, y1 - y0, PANEL_H, X_B0, y0, 0.0)
     cavity = box_at(COLUMN_MODULE_W - 2 * WALL, (y1 - y0) - BACK_WALL + 1.0, PANEL_H - 2 * WALL,
@@ -1467,6 +1474,7 @@ def build_back_shell_column():
     wash_bottom = box_cxz(COLUMN_MODULE_W - 2 * WALL - 4.0, WASH_LED_W, WASH_LED_D + 0.5,
                          (X_B0 + X_B1) / 2.0, wash_z, y1 - WASH_LED_D + 0.3)
     shell = shell.cut(wash_bottom)
+    _wash_led_env_b = wash_bottom.copy()   # captured for assembly_placements.json, same tool/position
 
     return shell
 
@@ -3015,8 +3023,14 @@ _TRAY_H = 4.0   # must match _tray()'s own local constant in build_back_shell_sc
 # read 19.5% blocked -- not a real defect, a probe geometry mistake, but
 # exactly the kind of thing this discipline exists to catch and fix
 # rather than wave away).
-probe(bs_screen, box_full(AMP_W, _TRAY_H - 1.0, AMP_H, amp_ax, PANEL_D - BACK_WALL - _TRAY_H / 2.0, amp_az),
-      "amp board footprint, open in its tray", want_open=True)
+_amp_probe_env = box_full(AMP_W, _TRAY_H - 1.0, AMP_H, amp_ax, PANEL_D - BACK_WALL - _TRAY_H / 2.0, amp_az)
+probe(bs_screen, _amp_probe_env, "amp board footprint, open in its tray", want_open=True)
+# Real board envelope for assembly_placements.json's own "hardware" key
+# -- same position, the probe's own real AMP_T thickness (3.0mm)
+# instead of the probe's deliberately-shrunk clearance margin (the
+# probe checks "is there real clearance", not "where does the board's
+# own real body sit").
+amp_env = box_full(AMP_W, AMP_T, AMP_H, amp_ax, PANEL_D - BACK_WALL - AMP_T / 2.0, amp_az)
 # Probed just ABOVE the mic-cradle shelf's own 3mm floor (a first draft's
 # probe centred on the whole reserved zone dipped 1mm into the shelf's
 # own top surface and read 10% blocked -- fixed by starting the probe
@@ -3248,6 +3262,163 @@ print(f"  assembly-reference solids: {len(_ref_check.Solids)} (expected {_expect
 assert len(_ref_check.Solids) == _expected_solids, (
     "assembly-reference.step solid count doesn't match the parts alone -- "
     "check nothing extra (e.g. the display STEP) leaked in")
+
+
+# =============================================================================
+# ASSEMBLY PLACEMENTS -- cad/assembly_placements.json, for the
+# coordinator's own step-by-step assembly drawing generator (DJ wants a
+# generated drawing per assembly step, matched later by real photos).
+# Maps every part's cad/step/ file stem to the transform that takes the
+# part AS EXPORTED into its installed position -- derived from the SAME
+# Placement/transform objects already used above for interference-
+# checking and the assembly-reference compound, never re-derived by
+# hand, and asserted against those same real shapes so this file can't
+# silently drift from the actual assembly.
+# =============================================================================
+print("\n--- assembly placements (drawing data) ---")
+
+
+def _mat16(m):
+    """Row-major 16 floats from a FreeCAD Matrix."""
+    return [m.A11, m.A12, m.A13, m.A14,
+            m.A21, m.A22, m.A23, m.A24,
+            m.A31, m.A32, m.A33, m.A34,
+            m.A41, m.A42, m.A43, m.A44]
+
+
+_IDENTITY_MATRIX = _mat16(Placement().Matrix)
+
+
+def _verify_bbox(test_shape, real_shape, label, tol=0.05):
+    """The part-placement discipline this whole build already uses:
+    real geometry, read back and compared, not trusted by construction.
+    Applying the exported JSON matrix to a fresh copy of the AS-
+    EXPORTED part must reproduce the exact bbox the real interference/
+    assembly-reference checks above already used."""
+    b1, b2 = test_shape.BoundBox, real_shape.BoundBox
+    worst = max(abs(getattr(b1, a) - getattr(b2, a))
+               for a in ("XMin", "XMax", "YMin", "YMax", "ZMin", "ZMax"))
+    tag = "OK" if worst <= tol else "FAIL"
+    print(f"  [{tag}] {label}: matrix-applied bbox vs real assembly placement, worst axis diff {worst:.4f}mm")
+    assert worst <= tol, f"{label}: assembly_placements.json matrix drifted from the real assembly ({worst:.3f}mm)"
+
+
+def _part_entry(local_shape, plc, real_placed_shape, label, note=None):
+    test = local_shape.copy()
+    test.Placement = plc
+    _verify_bbox(test, real_placed_shape, label)
+    e = {"matrix": _mat16(plc.Matrix)}
+    if note:
+        e["note"] = note
+    return e
+
+
+PLACEMENTS = {}
+
+# Parts already exported (cad/step/) in real assembly/world
+# coordinates -- identity, stated explicitly rather than omitted.
+for _nm in ("01a-face-plate-screen", "01b-face-plate-column",
+            "02a-back-shell-screen", "02b-back-shell-column",
+            "03-screen-trim", "04a-band-insert-ignition",
+            "04b-band-insert-nightfall", "05-band-diffuser"):
+    PLACEMENTS[_nm] = {"matrix": _IDENTITY_MATRIX,
+                       "note": "already exported in assembly coordinates (identity)"}
+
+# 06/07/08/12 -- the exact Placement objects _placed_copy() already
+# built above for the assembly-reference compound.
+PLACEMENTS["06-knob"] = _part_entry(_knob, knob_placed.Placement, knob_placed, "06-knob")
+PLACEMENTS["07-gold-tab"] = _part_entry(_tab, tab_placed.Placement, tab_placed, "07-gold-tab")
+PLACEMENTS["08-speaker-back-cup"] = _part_entry(_cup, cup_placed.Placement, cup_placed, "08-speaker-back-cup")
+PLACEMENTS["12-cleat-receiver-rail"] = _part_entry(_rail, rail_placed.Placement, rail_placed,
+                                                   "12-cleat-receiver-rail")
+
+# 11-wall-cleat -- the ENGAGED position. cleat_engaged was built above
+# via shape.translate()/.rotate() calls, which bake straight into the
+# shape's own geometry rather than updating .Placement -- so there is
+# no single Placement object to just read off. The EQUIVALENT
+# Placement is built here from the exact same _cleat_T/_flip_centre
+# values that transform already used (not new numbers), as a
+# composition of the same three steps (translate, rotate about a
+# point, translate again), then verified empirically against the real
+# cleat_placed shape below -- exactly the discipline this whole build
+# already applies everywhere else (real geometry, not trusted algebra).
+_cleat_R180 = Rotation(Vector(1.0, 0.0, 0.0), 180.0)
+_cleat_rot_pos = _flip_centre - _cleat_R180.multVec(_flip_centre)   # rotate-about-a-point, as a Placement
+_cleat_plc = (Placement(Vector((X_A0 + X_A1) / 2.0, 0.0, 0.0), Rotation())
+             * Placement(_cleat_rot_pos, _cleat_R180)
+             * Placement(Vector(0.0, _cleat_T.y, _cleat_T.z), Rotation()))
+PLACEMENTS["11-wall-cleat"] = _part_entry(_cleat, _cleat_plc, cleat_placed, "11-wall-cleat",
+                                          note="engaged position, hooked onto the 12-cleat-receiver-rail")
+
+assert set(PLACEMENTS.keys()) == {
+    "01a-face-plate-screen", "01b-face-plate-column", "02a-back-shell-screen", "02b-back-shell-column",
+    "03-screen-trim", "04a-band-insert-ignition", "04b-band-insert-nightfall", "05-band-diffuser",
+    "06-knob", "07-gold-tab", "08-speaker-back-cup", "11-wall-cleat", "12-cleat-receiver-rail",
+}, "assembly_placements.json must cover all 13 printed parts"
+
+# =============================================================================
+# HARDWARE PROXIES -- installed positions of the bought/off-the-shelf
+# hardware this build already models as envelope boxes (or, for the
+# display, the real RPi STEP) for its own interference checks above.
+# For illustration in the coordinator's step drawings ONLY (they'd
+# otherwise be invisible in a printed-parts-only drawing) -- every
+# entry here is an approximate PROXY box, explicitly marked as such,
+# reusing the exact same shapes/positions the interference checks
+# already built and verified, never new numbers.
+# =============================================================================
+HARDWARE = {}
+
+
+def _hw_box(shape, note):
+    """Axis-aligned box/cylinder envelope (box_full/box_at/cyl_y, no
+    rotation) -- matrix is a pure translation to the shape's own real
+    centre, size is its own real bbox extent. Self-verifying by
+    construction (built FROM the real shape's own bbox, not typed-in
+    constants), but still checked the same way as everything else."""
+    c = shape.BoundBox
+    plc = Placement(Vector((c.XMin + c.XMax) / 2.0, (c.YMin + c.YMax) / 2.0, (c.ZMin + c.ZMax) / 2.0), Rotation())
+    size = [round(c.XLength, 3), round(c.YLength, 3), round(c.ZLength, 3)]
+    test = box_full(size[0], size[1], size[2], 0, 0, 0)
+    test.Placement = plc
+    _verify_bbox(test, shape, f"hardware:{note}")
+    return {"matrix": _mat16(plc.Matrix), "size": size, "proxy": True, "note": note}
+
+
+HARDWARE["display"] = {
+    "matrix": _mat16(_disp_placement.Matrix),
+    "size": [round(_display_raw.BoundBox.XLength, 3), round(_display_raw.BoundBox.YLength, 3),
+             round(_display_raw.BoundBox.ZLength, 3)],
+    "proxy": True,
+    "note": "real RPi Touch Display 2 footprint (not redistributed -- size/matrix only); "
+            "size is the native STEP's own local bbox, centred at its own local bbox centre "
+            "before this matrix is applied",
+}
+# Verify: a local box of that size, centred at the RAW shape's own
+# local bbox centre (not world origin -- the native STEP isn't centred
+# on its own origin), placed with this exact matrix, must reproduce
+# display_installed's own real bbox.
+_draw_lbb = _display_raw.BoundBox
+_disp_test = box_full(_draw_lbb.XLength, _draw_lbb.YLength, _draw_lbb.ZLength,
+                      (_draw_lbb.XMin + _draw_lbb.XMax) / 2.0, (_draw_lbb.YMin + _draw_lbb.YMax) / 2.0,
+                      (_draw_lbb.ZMin + _draw_lbb.ZMax) / 2.0)
+_disp_test.Placement = _disp_placement
+_verify_bbox(_disp_test, display_installed, "hardware:display")
+
+HARDWARE["pi5-cooler"] = _hw_box(pi5_env, "Pi5 board + Active Cooler, conservative envelope box")
+HARDWARE["ky040-module"] = _hw_box(ky_env, "KY-040 encoder module + header + wires envelope")
+HARDWARE["rocker-body"] = _hw_box(rocker_env, "KCD1 rocker body + terminals + wiring reserve")
+HARDWARE["speaker"] = _hw_box(speaker_env, "40mm speaker driver, installed depth (cylindrical; box is its own bbox)")
+HARDWARE["amp"] = _hw_box(amp_env, "MAX98357A amp board, real W x T x H, seated in its own back-wall pocket")
+HARDWARE["mic-dongle"] = _hw_box(mic_env, "USB mic extension female end + protruding dongle, in its cradle")
+HARDWARE["band-led-run"] = _hw_box(_band_led_env, "WS2812B strip run behind the band diffuser")
+HARDWARE["wash-led-run-screen"] = _hw_box(_wash_led_env_a, "wall-wash LED run, screen module (02a) segment")
+HARDWARE["wash-led-run-column"] = _hw_box(_wash_led_env_b, "wall-wash LED run, column module (02b) segment")
+
+_placements_path = os.path.join(HERE, "assembly_placements.json")
+with open(_placements_path, "w") as _f:
+    json.dump({"parts": PLACEMENTS, "hardware": HARDWARE}, _f, indent=2)
+    _f.write("\n")
+print(f"  wrote {_placements_path} ({len(PLACEMENTS)} parts, {len(HARDWARE)} hardware proxies)")
 
 
 # =============================================================================
