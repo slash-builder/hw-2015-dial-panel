@@ -38,6 +38,37 @@ for downward-facing surfaces with only air beneath them: anything spanning
 more than 10 mm fails the build, shorter spans are reported with numbers. It
 is proven against the old geometry — it flags the exact ledge that failed.
 
+### Plate 3 · 01b + 02b, and the assembly that followed — FAILED to seat, fixed
+Plate 3 printed with minor stringing at the light opening on the bottom.
+Then **neither face plate would seat into its shell**: "the screw base bumps
+the edge of the body."
+
+**Cause, measured in the CAD:** the face plates' perimeter screw bosses
+genuinely overlapped the shells' side walls — 448 mm³ on the screen module
+(6 bosses, 2 mm into each wall) and 527 mm³ on the column (4 bosses, two of
+them ~9 mm deep). Not a tolerance problem: the parts intersected.
+
+**Why no check caught it:** the interference list was written by hand and
+**never paired a face plate with its own shell**. It checked the display, the
+pod, the cleat and the screws against the shells, but not the two biggest
+parts that bolt together.
+
+**Fixed:**
+- the overlap is gone, and every nesting fit now clears by a real 0.4 mm
+  printing allowance (PLA prints slightly oversized; a nominal 0 mm fit
+  means "does not fit")
+- the interference check is now generated from **all pairs** of placed parts
+  (276 pairs, 1 named skip: the two interchangeable band inserts), so a pair
+  cannot be missed by forgetting it
+- a separate fit-clearance check classifies each pair: intended contact
+  (seating faces, the knob and gold-tab press fits, the cleat hook) may touch
+  at ~0; anything that nests or slides must clear by 0.4 mm
+
+**Reprint after this fix:** 01a face plate, 02a back shell, 02b back shell,
+03 screen trim. **01b (column face plate), the knob, gold tab, speaker cup,
+cleat, rail and both band inserts are unchanged** — parts already printed
+are still good.
+
 ## Still to print
 Plates 3–9, and re-prints of 1, 2 and 5 from `main`. Worth checking on each:
 
