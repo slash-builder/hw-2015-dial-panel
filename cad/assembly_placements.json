@@ -1,0 +1,545 @@
+{
+  "parts": {
+    "01a-face-plate-screen": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "01b-face-plate-column": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "02a-back-shell-screen": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "02b-back-shell-column": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "03-screen-trim": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "04a-band-insert-ignition": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "04b-band-insert-nightfall": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "05-band-diffuser": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "already exported in assembly coordinates (identity)"
+    },
+    "06-knob": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        109.66,
+        0.0,
+        -1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.0,
+        124.24000000000001,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "07-gold-tab": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        109.66,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        52.04000000000002,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "08-speaker-back-cup": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        1.0,
+        0.0,
+        54.56,
+        0.0,
+        0.0,
+        1.0,
+        34.5,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "12-cleat-receiver-rail": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        1.0,
+        0.0,
+        54.56,
+        0.0,
+        0.0,
+        1.0,
+        150.12,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    },
+    "11-wall-cleat": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        -1.0,
+        -1.2246467991473532e-16,
+        66.55981327522312,
+        0.0,
+        1.2246467991473532e-16,
+        -1.0,
+        158.36981327522307,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "note": "engaged position, hooked onto the 12-cleat-receiver-rail"
+    }
+  },
+  "hardware": {
+    "display": {
+      "matrix": [
+        0.0,
+        1.0,
+        0.0,
+        -45.0,
+        0.0,
+        0.0,
+        -1.0,
+        8.52,
+        -1.0,
+        0.0,
+        0.0,
+        130.12,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        120.24,
+        189.32,
+        14.96
+      ],
+      "proxy": true,
+      "note": "real RPi Touch Display 2 footprint (not redistributed -- size/matrix only); size is the native STEP's own local bbox, centred at its own local bbox centre before this matrix is applied"
+    },
+    "pi5-cooler": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        1.0,
+        0.0,
+        29.11,
+        0.0,
+        0.0,
+        1.0,
+        130.12,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        85.0,
+        21.3,
+        56.0
+      ],
+      "proxy": true,
+      "note": "Pi5 board + Active Cooler, conservative envelope box"
+    },
+    "ky040-module": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        109.66,
+        0.0,
+        1.0,
+        0.0,
+        14.3,
+        0.0,
+        0.0,
+        1.0,
+        124.24000000000001,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        30.2,
+        16.6,
+        22.63
+      ],
+      "proxy": true,
+      "note": "KY-040 encoder module + header + wires envelope"
+    },
+    "rocker-body": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        109.66,
+        0.0,
+        1.0,
+        0.0,
+        18.0,
+        0.0,
+        0.0,
+        1.0,
+        71.64000000000001,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        21.3,
+        30.0,
+        15.2
+      ],
+      "proxy": true,
+      "note": "KCD1 rocker body + terminals + wiring reserve"
+    },
+    "speaker": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        1.0,
+        0.0,
+        28.799999999999997,
+        0.0,
+        0.0,
+        1.0,
+        34.5,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        40.4,
+        21.0,
+        40.4
+      ],
+      "proxy": true,
+      "note": "40mm speaker driver, installed depth (cylindrical; box is its own bbox)"
+    },
+    "amp": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -4.5,
+        0.0,
+        1.0,
+        0.0,
+        50.06,
+        0.0,
+        0.0,
+        1.0,
+        34.5,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        19.4,
+        3.0,
+        17.8
+      ],
+      "proxy": true,
+      "note": "MAX98357A amp board, real W x T x H, seated in its own back-wall pocket"
+    },
+    "mic-dongle": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        109.66,
+        0.0,
+        1.0,
+        0.0,
+        31.65,
+        0.0,
+        0.0,
+        1.0,
+        189.54000000000002,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        20.0,
+        53.3,
+        10.0
+      ],
+      "proxy": true,
+      "note": "USB mic extension female end + protruding dongle, in its cradle"
+    },
+    "band-led-run": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        1.0,
+        0.0,
+        52.31,
+        0.0,
+        0.0,
+        1.0,
+        16.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        171.32,
+        2.1,
+        10.0
+      ],
+      "proxy": true,
+      "note": "WS2812B strip run behind the band diffuser"
+    },
+    "wash-led-run-screen": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        -45.0,
+        0.0,
+        1.0,
+        0.0,
+        53.61,
+        0.0,
+        0.0,
+        1.0,
+        2.5,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        209.32,
+        3.5,
+        10.0
+      ],
+      "proxy": true,
+      "note": "wall-wash LED run, screen module (02a) segment"
+    },
+    "wash-led-run-column": {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        109.66,
+        0.0,
+        1.0,
+        0.0,
+        65.61,
+        0.0,
+        0.0,
+        1.0,
+        2.5,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "size": [
+        80.0,
+        3.5,
+        10.0
+      ],
+      "proxy": true,
+      "note": "wall-wash LED run, column module (02b) segment"
+    }
+  }
+}
