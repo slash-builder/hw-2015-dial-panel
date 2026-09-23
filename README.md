@@ -129,7 +129,7 @@ Studio and re-slice. For other slicers, use the STLs in `stl/`.
 2. **Inserts:** heat-set the M3 inserts. Every screw goes in from the back, so the face stays clean.
 3. **Screen module:** fit the display, with the Pi 5 and cooler on its back, the amp and the speaker (back-cup screwed on behind it).
 4. **Column:** fit the dial (held by its own nut), the rocker, the gold tab and the mic cradle.
-5. **Wire it:** follow [`docs/wiring.md`](docs/wiring.md), including the one-wire mic-cut splice. Then append [`docs/config.txt`](docs/config.txt) to the Pi's `/boot/firmware/config.txt`.
+5. **Wire it:** follow [`docs/wiring.md`](docs/wiring.md) — a pin map, a diagram per subsystem, and the one-wire mic-cut splice. Then append [`docs/config.txt`](docs/config.txt) to the Pi's `/boot/firmware/config.txt`.
 6. **Close up:** fit your team's band insert and the diffuser, lay in the LED strips, screw the face plates on, and bolt the two modules together.
 7. **Hang it:** screw the cleat to the wall and drop the panel onto it.
 
