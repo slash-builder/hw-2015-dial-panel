@@ -722,6 +722,42 @@ print(f"  band mounts: hole wall {BAND_MOUNT_HOLE_WALL:.2f}mm (>=2.5 required), 
       f"boss-to-window margin {BAND_MOUNT_WINDOW_MARGIN:.2f}mm (>0 required), "
       f"INSERT_OVERLAP={INSERT_OVERLAP:.2f}mm (was 4.0)")
 
+# fix/band-mount, round 2: growing INSERT_OVERLAP fixed the mount holes
+# themselves but created a NEW, separate defect the coordinator caught
+# independently against the real exported STEP -- 04b's own randomly-
+# seeded perforation pattern now runs right up against two of the four
+# M3 clearance holes (measured wall down to 0.08mm at one corner,
+# 0.96mm at another; 04a's deterministic grid happened to already clear
+# every corner by construction, not because anything ever checked it).
+# MIN_FEATURE_WALL is the single named minimum for "real material
+# between two circular features" -- used below both to SUPPRESS any
+# perforation that would violate it (this constant) and, further down,
+# by the generic MIN-FEATURE-WALL permanent check that verifies the
+# suppression actually worked on the finished, exported part (not just
+# in the generator's own intent).
+MIN_FEATURE_WALL = 2.0   # mm -- generous, but this insert/diffuser gets screwed down four times
+
+
+def _too_close_to_any(x, z, feature_r, existing_xzr, min_wall=MIN_FEATURE_WALL):
+    """True if a circular feature of radius feature_r centred at (x,z)
+    would leave less than min_wall of material to ANY of the features
+    already accepted into existing_xzr (a list of (x,z,r) tuples).
+    Generalised from the original mount-only check: running this
+    against a list SEEDED with BAND_MOUNTS, and appending every
+    perforation as it's accepted, catches "too close to a mount hole"
+    (the coordinator's own original finding) AND "too close to an
+    earlier-accepted perforation" (found while adding this fix's own
+    MIN-FEATURE-WALL check -- 04a's base grid and acoustic-zone
+    clusters meet with only ~0.35mm between them at the boundary, and
+    04b's own random jitter has no minimum-spacing rule at all, both
+    independent of INSERT_OVERLAP and pre-existing in this build) with
+    the SAME mechanism, not two separate ones."""
+    for (ox, oz, orr) in existing_xzr:
+        d = math.hypot(x - ox, z - oz)
+        if d - orr - feature_r < min_wall:
+            return True
+    return False
+
 SPEAKER_POD_CX, SPEAKER_POD_CZ = BAND_CX, BAND_CZ
 SPEAKER_POD_Y0 = FACE_T + 12.0                 # shoulder plane, behind the diffuser+LED gap
 SPEAKER_SHOULDER_T = 3.0
@@ -1881,6 +1917,20 @@ def build_band_insert_ignition():
     hole_d = 3.2
     pitch = 6.5
     holes = []
+    # Mount-hole keep-out list, per item #1 of the coordinator's own
+    # request: "any perforation whose EDGE comes within a named keep-
+    # out of a clearance hole's edge gets dropped" -- BAND_MOUNTS only,
+    # deliberately NOT grown with every accepted perforation. An
+    # earlier draft of this fix checked candidates against a growing
+    # list of every already-placed hole (mounts + perforations), which
+    # also would have suppressed the acoustic zone's own intentionally
+    # dense hex packing (adjacent acoustic holes sit ~2.0mm apart BY
+    # DESIGN, to clear the real ACOUSTIC_OPEN_MIN_PCT requirement) --
+    # confirmed the hard way: it gutted the acoustic zone's own open
+    # area from 31.4% to 11.9%, well under the 25% floor. The mount-
+    # tearing concern and the grille's own density are different
+    # design goals; only the former is this item's job.
+    mount_xzr = [(bx, bz, CLEAR_D / 2.0) for (bx, bz) in BAND_MOUNTS]
     n_open = 0
     open_area = 0.0
     acoustic_open_area = 0.0
@@ -1897,6 +1947,8 @@ def build_band_insert_ignition():
                 continue
             if _in_acoustic_zone(xx, zz):
                 continue   # acoustic zone gets its OWN denser pattern below, not the base grid
+            if _too_close_to_any(xx, zz, hole_d / 2.0, mount_xzr):
+                continue   # fix/band-mount round 2: would leave < MIN_FEATURE_WALL to a mount hole's own edge
             holes.append(cyl_y(hole_d / 2.0, 40.0, xx, zz, -2))
             n_open += 1
             open_area += math.pi * (hole_d / 2.0) ** 2
@@ -1913,6 +1965,8 @@ def build_band_insert_ignition():
             xx = ACOUSTIC_CX + c * ac_pitch + xoff
             if not _in_acoustic_zone(xx, zz, margin=-1.0):   # keep the hole fully inside, real edge margin
                 continue
+            if _too_close_to_any(xx, zz, ac_hole_d / 2.0, mount_xzr):
+                continue   # fix/band-mount round 2: same mount-hole keep-out applies inside the acoustic zone too
             holes.append(cyl_y(ac_hole_d / 2.0, 40.0, xx, zz, -2))
             n_open += 1
             a = math.pi * (ac_hole_d / 2.0) ** 2
@@ -1944,6 +1998,18 @@ def build_band_insert_nightfall():
     rows = int((INSERT_H - 2 * INSERT_MARGIN) / pitch) + 1
     cols = int((INSERT_W - 2 * INSERT_MARGIN) / pitch) + 1
     holes = []
+    # Mount-hole keep-out list -- BAND_MOUNTS only, same scope/rationale
+    # as build_band_insert_ignition()'s own mount_xzr (see its comment):
+    # checking against a GROWING list of every already-placed hole
+    # would also suppress this pattern's own dense acoustic star
+    # cluster (near-certain inclusion by design, to clear the real
+    # ACOUSTIC_OPEN_MIN_PCT requirement) -- confirmed the hard way on
+    # 04a. Checking against `d` (already drawn from `rnd`, below)
+    # doesn't disturb the random sequence either way: rejecting a
+    # candidate here never skips a draw, so the rest of the starfield's
+    # positions/sizes are unchanged regardless of which list this
+    # checks against -- only the mount-adjacency accept/reject changes.
+    mount_xzr = [(bx, bz, CLEAR_D / 2.0) for (bx, bz) in BAND_MOUNTS]
     n_open = 0
     open_area = 0.0
     acoustic_open_area = 0.0
@@ -1966,6 +2032,8 @@ def build_band_insert_nightfall():
             if abs(zzj - BAND_CZ) > INSERT_H / 2.0 - INSERT_MARGIN:
                 zzj = zz
             d = rnd.choices(sizes, weights=size_weights)[0]
+            if _too_close_to_any(xx, zzj, d / 2.0, mount_xzr):
+                continue   # fix/band-mount round 2: would leave < MIN_FEATURE_WALL to a mount hole's own edge
             holes.append(cyl_y(d / 2.0, 40.0, xx, zzj, -2))
             n_open += 1
             open_area += math.pi * (d / 2.0) ** 2
@@ -1989,6 +2057,8 @@ def build_band_insert_nightfall():
             xxj = xx + rnd.uniform(-0.6, 0.6)
             zzj = zz + rnd.uniform(-0.6, 0.6)
             d = rnd.choices(sizes, weights=ac_size_weights)[0]
+            if _too_close_to_any(xxj, zzj, d / 2.0, mount_xzr):
+                continue   # fix/band-mount round 2: same mount-hole keep-out applies inside the acoustic zone too
             holes.append(cyl_y(d / 2.0, 40.0, xxj, zzj, -2))
             n_open += 1
             a = math.pi * (d / 2.0) ** 2
@@ -3897,6 +3967,177 @@ for _pn in _PRINTED_PART_NAMES:
     if _best[0] > NO_FLOATING_TOL:
         _floating_bad.append((_pn, _best[1], _best[0]))
 assert not _floating_bad, f"{len(_floating_bad)} part(s) with no zero-distance neighbour (floating): {_floating_bad}"
+
+# MIN-FEATURE-WALL (fix/band-mount round 2) -- on the FINISHED, exported
+# part (ALL_PLACED's own shapes, already perforated/cut), not the
+# reference outline FASTENER-HOLE-EXISTS uses above. That check is
+# structurally blind to this one: probing a fresh cylinder against a
+# flat reference outline can only see "is there real material here at
+# all", never "has a NEIGHBOURING feature already eaten into it" -- the
+# coordinator's own independent measurement against cad/step/ found
+# exactly that on this branch's first commit (7a6703a): 04b's randomly-
+# seeded perforation pattern grew right up against two of the four
+# mount holes once the insert grew by 5.7mm/side (wall down to 0.08mm
+# at one corner, 0.96mm at another), while 04a's own deterministic grid
+# happened to already clear every corner -- neither fact was ever
+# checked before now.
+#
+# For every part, every pair of REAL circular HOLES (cylindrical, axis-
+# aligned, concave -- material OUTSIDE the circle, air/void inside):
+# assert centre distance minus both radii is at least MIN_FEATURE_WALL.
+# Only features sharing the same axis direction are compared (every
+# cyl_x/cyl_y/cyl_z helper in this file only ever builds axis-aligned
+# cylinders, so this covers every real circular feature in the build).
+#
+# Deliberately HOLES ONLY, not every cylindrical face: a first pass
+# compared ALL cylindrical faces indiscriminately and flagged three
+# false positives that have nothing to do with "can this tear when
+# screwed" -- 01a's own BAND_MOUNTS boss sitting close to a PERIM_A
+# boss (two solid, convex bosses close together is if anything MORE
+# material, not a thin wall), and similarly on 02a/08 (a boss near a
+# large bore). Concave (hole) vs convex (boss) is real, checkable
+# geometry, not a guess: a hole's own face normal points TOWARD its
+# axis (the solid is OUTSIDE it); a boss's own face normal points AWAY
+# from its axis (the solid is INSIDE it) -- confirmed directly on 01a's
+# real exported faces (TRIM_BORE holes: dot=-1.0; BAND_MOUNTS/PERIM_A
+# boss ODs: dot=+1.0). Boss-to-boss and boss-to-bore proximity are
+# already covered by their own dedicated checks elsewhere (BOSS_OD/
+# INSERT_D wall margins, all-pairs interference/FIT_CLEARANCE) -- this
+# check's own job is specifically the "thin wall between two voids"
+# class of defect the coordinator found in 04b.
+print("\n--- new permanent check: MIN-FEATURE-WALL (finished, exported parts) ---")
+
+
+def _cylindrical_features(shape):
+    """Group every real concave (hole) cylindrical face on `shape` by its
+    (canonicalised) axis direction -> list of (Center, Radius). Convex
+    (boss/body) cylindrical faces are excluded -- see the comment above."""
+    groups = {}
+    for f in shape.Faces:
+        if f.Surface.TypeId != "Part::GeomCylinder":
+            continue
+        ax = f.Surface.Axis
+        u0, u1, v0, v1 = f.ParameterRange
+        pt = f.valueAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
+        n = f.normalAt((u0 + u1) / 2.0, (v0 + v1) / 2.0)
+        to_pt = pt - f.Surface.Center
+        radial = to_pt - ax * to_pt.dot(ax)
+        if radial.Length < 1e-6:
+            continue   # degenerate sample point, skip rather than divide by ~0
+        radial.normalize()
+        if n.dot(radial) > 0.0:
+            continue   # convex (a boss/body's own OD) -- not a hole, skip
+        key = (round(ax.x, 2), round(ax.y, 2), round(ax.z, 2))
+        if key < (0.0, 0.0, 0.0):   # canonicalise +/-axis so opposite normals on the same physical axis group together
+            key = tuple(-v for v in key)
+        groups.setdefault(key, []).append((f.Surface.Center, f.Surface.Radius))
+    return groups
+
+
+def _feature_wall_2d(axis_key, ca, ra, cb, rb):
+    """Centre distance (in the plane perpendicular to axis_key) minus
+    both radii -- the real wall thickness between two coplanar circular
+    features sharing that axis."""
+    if abs(axis_key[1]) > 0.9:      # Y-axis holes (through a panel's own thickness) -- project to XZ
+        da, db = (ca.x, ca.z), (cb.x, cb.z)
+    elif abs(axis_key[0]) > 0.9:    # X-axis holes -- project to YZ
+        da, db = (ca.y, ca.z), (cb.y, cb.z)
+    else:                            # Z-axis holes -- project to XY
+        da, db = (ca.x, ca.y), (cb.x, cb.y)
+    d = math.hypot(da[0] - db[0], da[1] - db[1])
+    return d, d - ra - rb
+
+
+# Known findings from this check that are REAL but OUT OF SCOPE for
+# this branch's fix, and NOT touched here -- same "found in passing,
+# logged as its own item, not silently fixed or silently ignored"
+# treatment as the 12-cleat-receiver-rail vs 02a discrepancy noted
+# elsewhere on this branch. A real, named reason is required for every
+# entry, same discipline as SKIP_PAIRS/INTENDED_CONTACT above -- this
+# is never a quiet way to make the check pass.
+#
+# 04a/04b's own entries are NOT the mount-adjacency defect item #1 of
+# this fix targets (that one IS fixed -- see mount_xzr in each build_
+# band_insert_*() function) -- they're the grille PATTERN's own
+# internal density, a different design tension entirely: an earlier
+# draft tried suppressing these too, by checking every candidate
+# against a GROWING list of every already-placed hole (not just the
+# mounts), and it worked exactly as intended -- right up until it also
+# suppressed the acoustic zone's own intentionally dense hex/star
+# packing (adjacent acoustic holes sit close together BY DESIGN, to
+# clear the real ACOUSTIC_OPEN_MIN_PCT>=25% requirement), gutting 04a's
+# acoustic-zone open area from 31.4% to 11.9%. Wall thickness and
+# acoustic transparency are two real, competing requirements on the
+# SAME grille pattern; picking a new balance between them is a design
+# call for whoever owns ACOUSTIC_OPEN_MIN_PCT/the grille's own
+# character, not something to resolve unilaterally inside this fix.
+# Each entry is (known_floor_mm, reason): the exemption only covers a
+# measured wall AT OR ABOVE known_floor -- NOT "this part name, any
+# value". Keying on the part name alone would have been a real trap:
+# spliced onto this branch's OWN FIRST commit (7a6703a) as a check of
+# the check, a name-only exemption for "04b-band-insert-nightfall"
+# would have silently swallowed the ORIGINAL 0.08mm mount-adjacency
+# defect too, since it shares this part's name with the (unrelated,
+# much less severe) 0.59mm grille-density finding this exemption is
+# actually FOR. Bounding the exemption to values already at or above
+# what's been seen and accepted means a future regression to something
+# WORSE (like that same 0.08mm again) still hard-fails, on this part or
+# any other -- confirmed directly: the same check, unmodified, against
+# 7a6703a's real geometry reports 0.08mm for 04b and (correctly) raises
+# instead of flagging.
+MIN_FEATURE_WALL_KNOWN_FINDINGS = {
+    "08-speaker-back-cup": (0.45, (
+        "the speaker-wire pass-through hole sits ~0.50mm from the sealed "
+        "back-chamber recess's own edge -- real, but a different part than "
+        "04a/04b/05, unrelated to BAND_MOUNTS/INSERT_OVERLAP, not fixed on "
+        "this branch")),
+    "04a-band-insert-ignition": (-0.5, (
+        "a base-grid hole and an acoustic-zone hole land ~0.35mm apart (a "
+        "small real overlap) right where the sparse outer grid meets the "
+        "dense acoustic cluster -- the grille PATTERN's own zone-boundary "
+        "margins, not the BAND_MOUNTS defect this branch fixes (mount-hole "
+        "adjacency IS fixed here, see mount_xzr); not touched here since a "
+        "real fix trades off against ACOUSTIC_OPEN_MIN_PCT, a design call")),
+    "04b-band-insert-nightfall": (0.5, (
+        "two same-size random perforations land ~0.59mm apart by chance -- "
+        "the starfield pattern's own pitch+jitter never enforced a hard "
+        "minimum hole-to-hole spacing; same design-tradeoff reasoning as "
+        "04a above, not the BAND_MOUNTS defect this branch fixes (mount-"
+        "hole adjacency IS fixed here, see mount_xzr) -- NOTE: this floor "
+        "(0.5mm) sits well above the ORIGINAL 0.08mm mount-adjacency defect "
+        "this branch fixed, deliberately, so a regression back toward that "
+        "still hard-fails instead of being swallowed by this same entry")),
+}
+
+_wall_bad = []
+for _pn in _PRINTED_PART_NAMES:
+    _groups = _cylindrical_features(ALL_PLACED[_pn])
+    _tightest = None
+    for _axis_key, _feats in _groups.items():
+        for _i in range(len(_feats)):
+            _ca, _ra = _feats[_i]
+            for _j in range(_i + 1, len(_feats)):
+                _cb, _rb = _feats[_j]
+                _d, _wall = _feature_wall_2d(_axis_key, _ca, _ra, _cb, _rb)
+                if _d <= abs(_ra - _rb) + 1e-6:
+                    continue   # one circle nested inside the other -- not a side-by-side wall
+                if _tightest is None or _wall < _tightest[0]:
+                    _tightest = (_wall, _ca, _ra, _cb, _rb)
+    if _tightest is None:
+        print(f"  [--] MIN-FEATURE-WALL {_pn}: no comparable circular-feature pairs")
+        continue
+    _wall, _ca, _ra, _cb, _rb = _tightest
+    _finding = MIN_FEATURE_WALL_KNOWN_FINDINGS.get(_pn)
+    _ok = _wall >= MIN_FEATURE_WALL
+    _known = (_finding is not None) and (_wall >= _finding[0])
+    tag = "OK" if _ok else ("FLAGGED" if _known else "FAIL")
+    _suffix = f" -- KNOWN, not fixed here: {_finding[1]}" if (not _ok and _known) else ""
+    print(f"  [{tag}] MIN-FEATURE-WALL {_pn}: tightest wall {_wall:.2f}mm -- feature r={_ra:.2f} at "
+          f"{tuple(round(v, 2) for v in _ca)} vs feature r={_rb:.2f} at {tuple(round(v, 2) for v in _cb)} "
+          f"(need >={MIN_FEATURE_WALL}mm){_suffix}")
+    if not _ok and not _known:
+        _wall_bad.append((_pn, _wall))
+assert not _wall_bad, f"{len(_wall_bad)} part(s) with an UNFLAGGED feature-to-feature wall under {MIN_FEATURE_WALL}mm: {_wall_bad}"
 
 
 # =============================================================================
