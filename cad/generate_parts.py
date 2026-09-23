@@ -146,6 +146,23 @@ if not os.path.exists(DISPLAY_STEP):
     sys.stdout.flush()
     raise SystemExit(1)  # URL in module docstring. Never copied into this repo.
 
+# Round 8: real native bbox of the display STEP, read ONCE, up front --
+# used by PERIM_A's tight-boss sizing below AND by the assembly-interference
+# section further down (same shape re-read there for the full-geometry
+# interference check; this early read is only for its raw BoundBox numbers).
+# A prior fix assumed the native bbox is CENTRED on the display's own
+# placement origin (world_edge = DISPLAY_CX +/- DISP_H_NATIVE/2) and patched
+# the resulting mismatch with a guessed 1.0mm margin -- that guess was
+# wrong: the real measured mismatch is ~2.9mm, not ~0.55mm (a stale earlier
+# estimate), and no fixed margin is trustworthy here. Reading the real
+# native bbox directly removes the guess entirely.
+_disp_native_probe = Part.Shape()
+_disp_native_probe.read(DISPLAY_STEP)
+_DISP_NATIVE_BBOX = _disp_native_probe.BoundBox
+print(f"  [display] real native bbox: X[{_DISP_NATIVE_BBOX.XMin:.2f},{_DISP_NATIVE_BBOX.XMax:.2f}] "
+      f"Y[{_DISP_NATIVE_BBOX.YMin:.2f},{_DISP_NATIVE_BBOX.YMax:.2f}] "
+      f"Z[{_DISP_NATIVE_BBOX.ZMin:.2f},{_DISP_NATIVE_BBOX.ZMax:.2f}]")
+
 doc = App.newDocument("Thunderhead2015DialPanel")
 
 RESULTS = []           # (name, solids, valid, shells, dims, note)
@@ -335,6 +352,24 @@ INSERT_D = 4.0
 INSERT_DEPTH = 6.5            # BOM-corrected (was 5.7 -- that was the insert's
                                 # own length, not the required bore depth)
 INSERT_WALL_MIN = 1.6          # BOM: "keep >=1.6mm of plastic around each insert"
+
+# FIT_CLEARANCE -- round 8, real print failure: DJ's own two printed
+# assemblies (plates 1-3) found NEITHER face plate seats into its own
+# shell -- "the screw base bumps the edge of the body". Measured in
+# the repo's own exported geometry: the perimeter screw bosses on
+# 01a/01b were positioned with ZERO nominal clearance from the shell's
+# own inner wall face (a hand-picked "centre of the rim strip" position
+# that happened to land the boss's own OD 2mm INSIDE the wall), so real
+# PLA (elephant foot, extrusion width -- it always prints slightly
+# larger than 0.0mm nominal) bit straight into the wall. Every NESTING
+# or SLIDING fit in this build (a boss that must clear a wall, a plate
+# that drops into an opening, an insert into a window) now uses this
+# one named constant for its real clearance margin -- 0.0mm nominal
+# clearance is not a real clearance, it is "does not fit" the moment
+# a real printer's own oversizing is added. Not used for INTENDED
+# CONTACT (flat seating faces, press fits, the cleat hook) -- those
+# are allowed at ~0mm by design; see the fit-clearance check below.
+FIT_CLEARANCE = 0.4   # mm -- real printing allowance, PLA on a Bambu A1
 CLEAR_D = 3.4          # M3 clearance hole through a mating part
 CSK_D = 6.5            # screw-head counterbore
 CSK_DEPTH = 2.6
@@ -419,6 +454,13 @@ COL_CX = (X_B0 + X_B1) / 2.0
 # also exhausts sideways through its fins, so vents are added to the back
 # wall near the Pi5 position (see build_back_shell_screen()).
 FIT_CLR = 0.5          # clearance around the display module in its pocket
+# Round 8: hoisted up from the assembly-interference section further down
+# (it used to be defined there, right before it was first used) so
+# build_screen_trim()'s own boss-length sizing -- which needs to know
+# where the display's real front face sits, to keep the trim's mounting
+# boss from reaching into it -- can reference the SAME constant instead
+# of a second, independent copy.
+DISPLAY_Y_FRONT = FACE_T + FIT_CLR
 BACK_WALL = 3.0
 DEPTH_MARGIN = 1.0     # real safety margin added on top of the exact stack sum
 COOLER_CLEARANCE = 16.0   # BOM-corrected design clearance (was the bare 13.70mm)
@@ -545,12 +587,59 @@ SEAM_BOLT_ZS = [BOTTOM_RIM + 15, BAND_CZ, SCREEN_CZ - 20, SCREEN_Z1 - 15]
 SEAM_BOSS_LEN = max(8.0, BOSS_LEN_MIN)
 
 PERIM_BOSS_LEN = max(7.0, BOSS_LEN_MIN)
-_PA_XL = X_A0 + LEFT_RIM / 2.0     # centre of the LEFT_RIM strip
-_PA_XR = SCREEN_X1 + GAP1 / 2.0    # centre of the GAP1 strip
-PERIM_A = [(x, z) for x in (_PA_XL, _PA_XR) for z in (18.0, PANEL_H / 2.0, PANEL_H - 15.0)]
+# Round 8: repositioned from "centre of the rim/gap/margin strip" to a
+# real clearance-driven formula. The OLD "strip-centre" positions
+# (LEFT_RIM/2, GAP1/2, etc.) never checked the boss's own OD against
+# the shell's inner wall at all -- for the 11mm-wide strips in THIS
+# build, the strip-centre position put the boss's OWN OD (9mm) only
+# 1mm from the panel's outer edge, i.e. 2mm INSIDE the shell's real
+# WALL(3mm) thickness (confirmed directly on the real exported
+# geometry: 448mm3 overlap, 01a boss vs 02a wall, DJ's own real print
+# failure -- "the screw base bumps the edge of the body"). Now the
+# boss's own centre is placed so its OD clears the wall's inner face
+# by a real FIT_CLEARANCE, by construction, not by accident of
+# whichever strip it happened to sit near:
+_PERIM_MARGIN = WALL + FIT_CLEARANCE + BOSS_OD / 2.0
+_PA_XL = X_A0 + _PERIM_MARGIN
+_PA_XR_NOMINAL = X_A1 - _PERIM_MARGIN      # X_A1 is ALSO a real wall boundary (the seam side) -- same margin needed
 
-_PB_XL = X_B0 + COL_LEFT_MARGIN / 2.0
-_PB_XR = X_B1 - RIGHT_RIM / 2.0
+# _PA_XR ALSO has to clear the real display module's own edge (not
+# just the shell wall) -- found by the round-8 exhaustive fit-clearance
+# check: 01a's own boss here touched the display at exactly 0.000mm.
+# The real space between the display's landscape edge and the shell's
+# own wall in this build (~9.1mm) is TOO TIGHT for the standard 9mm
+# BOSS_OD plus FIT_CLEARANCE on both sides (needs 9.8mm) -- a genuine
+# geometric conflict, not a placement mistake to just nudge. Fixed
+# like 03-screen-trim's own boss already does elsewhere in this build
+# ("the ring's own border is narrow here"): a real, smaller boss OD
+# for this ONE tight position specifically, sized to what the space
+# actually allows, not the standard size squeezed in anyway.
+#
+# world_X = DISPLAY_CX + native_Y (see module docstring's rotation
+# derivation), so the display's real installed right edge in world X is
+# DISPLAY_CX + the REAL native Y-max read off the STEP file itself, not
+# DISPLAY_CX +/- half of the overall native length -- a first attempt at
+# this used that symmetric-centre assumption and patched the mismatch
+# with a guessed 1.0mm margin; the real mismatch measured ~2.9mm, not
+# ~0.55mm, so that guess silently changed nothing (PERIM_BOSS_OD_TIGHT
+# never actually engaged). Using the real measured native bbox removes
+# the guess entirely -- DISPLAY_CX isn't defined yet at this point in the
+# file, but it's just SCREEN_CX (see DISPLAY_CX = SCREEN_CX below).
+_disp_right_edge = SCREEN_CX + _DISP_NATIVE_BBOX.YMax   # display's own real landscape right edge, measured
+_pa_xr_avail_od = ((X_A1 - WALL) - _disp_right_edge - 2.0 * FIT_CLEARANCE)
+PERIM_BOSS_OD_TIGHT = min(BOSS_OD, math.floor(_pa_xr_avail_od * 10.0) / 10.0)
+assert (PERIM_BOSS_OD_TIGHT - INSERT_D) / 2.0 >= INSERT_WALL_MIN, (
+    f"PERIM_BOSS_OD_TIGHT ({PERIM_BOSS_OD_TIGHT}mm) too small for a real insert wall")
+_PA_XR = (X_A1 - WALL) - FIT_CLEARANCE - PERIM_BOSS_OD_TIGHT / 2.0
+PERIM_A = [(x, z) for x in (_PA_XL, _PA_XR) for z in (18.0, PANEL_H / 2.0, PANEL_H - 15.0)]
+# Per-position boss OD -- looked up by build_face_plate_screen()'s own
+# boss-building loop; every position defaults to the standard BOSS_OD
+# except the tight one above.
+PERIM_A_BOSS_OD = {(x, z): (PERIM_BOSS_OD_TIGHT if x == _PA_XR else BOSS_OD)
+                   for (x, z) in PERIM_A}
+
+_PB_XL = X_B0 + _PERIM_MARGIN
+_PB_XR = X_B1 - _PERIM_MARGIN
 PERIM_B = [(x, z) for x in (_PB_XL, _PB_XR) for z in (18.0, PANEL_H - 15.0)]
 
 # =============================================================================
@@ -616,7 +705,16 @@ AMP_CENTER = (SPEAKER_POD_CX + SPEAKER_FRAME_OD / 2.0 + 20.0, SPEAKER_POD_CZ)
 # not forced to match 40 exactly). Level-shifter (74AHCT125, DIP-14 on a
 # small perfboard, ~25x20x12mm) pocket near the LED data entry, on 02a.
 BAND_LED_Y0 = FACE_T + 1.0
-INSERT_Y0 = BAND_LED_Y0 + 6.0             # insert(04)'s own Y position, behind the LED gap
+# Round 8: INSERT_Y0 used to be a fixed "BAND_LED_Y0 + 6.0" offset that
+# never actually checked against the BAND_MOUNTS boss's own real tip
+# (FACE_T + BAND_BOSS_LEN) -- on the real exported geometry this landed
+# the insert's own front face 0.1mm INSIDE the boss's own tip (a real,
+# if small, 3.07mm3 overlap: the boss's fat 9mm OD poking a hair past
+# where the insert's solid plate begins, around its own narrow 3.4mm
+# clearance hole). Tied directly to the boss's own real geometry now,
+# with a real FIT_CLEARANCE gap, instead of an independent guess that
+# happened to almost -- but not quite -- clear it.
+INSERT_Y0 = FACE_T + BAND_BOSS_LEN + FIT_CLEARANCE   # clears the BAND_MOUNTS boss's real tip
 DIFFUSER_Y0 = INSERT_Y0 + INSERT_T + 1.0   # diffuser(05) sits just behind the insert
 BAND_LED_W, BAND_LED_D = 10.0, 3.0
 WASH_LED_W, WASH_LED_D = 10.0, 3.0
@@ -823,7 +921,7 @@ def build_face_plate_screen():
     # matching clearance hole lives in 02a's own BACK WALL far away (the
     # screw simply spans the open cavity -- see module docstring).
     for (px, pz) in PERIM_A:
-        boss = cyl_y(BOSS_OD / 2.0, PERIM_BOSS_LEN + 0.3, px, pz, FACE_T - 0.3)
+        boss = cyl_y(PERIM_A_BOSS_OD[(px, pz)] / 2.0, PERIM_BOSS_LEN + 0.3, px, pz, FACE_T - 0.3)
         plate = plate.fuse(boss)
         ins = cyl_y(INSERT_D / 2.0, INSERT_DEPTH, px, pz,
                      FACE_T + PERIM_BOSS_LEN - INSERT_DEPTH + 0.3)
@@ -1188,10 +1286,32 @@ def build_back_shell_screen():
     # need -- length achieved is reported by the caller, not forced to
     # match). Groove cut into the back wall's own outer face.
     wash_z = WALL / 2.0 + 1.0
-    wash_bottom = box_cxz(SCREEN_MODULE_W - 2 * WALL - 4.0, WASH_LED_W, WASH_LED_D + 0.5,
-                         (X_A0 + X_A1) / 2.0, wash_z, PANEL_D - WASH_LED_D + 0.3)
-    shell = shell.cut(wash_bottom)
-    _wash_led_env_a = wash_bottom.copy()   # captured for assembly_placements.json, same tool/position
+    _wash_full_w = SCREEN_MODULE_W - 2 * WALL - 4.0
+    _wash_cx = (X_A0 + X_A1) / 2.0
+    _wash_left_x, _wash_right_x = _wash_cx - _wash_full_w / 2.0, _wash_cx + _wash_full_w / 2.0
+    # Round 8: real overlap found -- the speaker back-cup(08)'s own 56mm
+    # disc, mounted flush on this same outer back face, dips 1mm into
+    # the wash channel's own Z-band directly under the pod (measured on
+    # the real exported geometry: 7.94mm3, 08 vs the wash-led-run
+    # proxy -- the OLD hand-written pair list never checked hardware
+    # proxies against the parts they sit next to either). The wash
+    # channel is already documented as a real "partial loop, not a
+    # full ring" (BOM note: ~40 LEDs, not the ~65 a full loop would
+    # need) -- so routing it AROUND the cup, with a real FIT_CLEARANCE
+    # gap on both sides of the cup's own footprint, is a legitimate
+    # design choice, not a compromise.
+    _cup_od_real = SPEAKER_FRAME_OD + 1.0 + 8.0 + 6.0   # same formula build_speaker_back_cup() uses for cup_od
+    _cup_clear_x0 = SPEAKER_POD_CX - _cup_od_real / 2.0 - FIT_CLEARANCE
+    _cup_clear_x1 = SPEAKER_POD_CX + _cup_od_real / 2.0 + FIT_CLEARANCE
+    _wash_led_env_a = None
+    for (_seg_x0, _seg_x1) in ((_wash_left_x, max(_wash_left_x, min(_wash_right_x, _cup_clear_x0))),
+                              (min(_wash_right_x, max(_wash_left_x, _cup_clear_x1)), _wash_right_x)):
+        if _seg_x1 - _seg_x0 <= 0.5:
+            continue   # the cup's own clearance zone doesn't actually reach this end
+        _seg = box_at(_seg_x1 - _seg_x0, WASH_LED_D + 0.5, WASH_LED_W,
+                      _seg_x0, PANEL_D - WASH_LED_D + 0.3, wash_z - WASH_LED_W / 2.0)
+        shell = shell.cut(_seg)
+        _wash_led_env_a = _seg.copy() if _wash_led_env_a is None else _wash_led_env_a.fuse(_seg.copy())
 
     # Cable slot -- straight USB-C plug clearance, THROUGH the bottom wall
     # (Z=0..WALL), off to one side clear of the speaker pod. X=width,
@@ -1394,6 +1514,30 @@ def build_back_shell_column():
         shell = shell.fuse(lip)
     shell = shell.removeSplitter()
 
+    # Round 8: the shelf's own full-Y-depth extension above (the round-5
+    # print-safety fix) spans the WHOLE cavity depth at this Z-band --
+    # but 01b's own PERIM_B bosses reach into the cavity at that same Z
+    # for one of their two positions (PANEL_H-15.0, right where the
+    # shelf sits). Measured on the real exported geometry: 01b vs 02b
+    # overlapped by a real 274.7mm3 in two ~137mm3 regions, matching
+    # Z=181.24..184.24 exactly -- the shelf's own band -- never caught
+    # before because the OLD interference suite never checked a face
+    # plate against its own shell at all. Fixed with a real clearance
+    # bore through the shelf, wherever a PERIM_B boss's Z lands inside
+    # its band, sized to the boss's own OD plus a real FIT_CLEARANCE --
+    # a small local notch, not a structural compromise of the shelf.
+    _perim_r = BOSS_OD / 2.0 + FIT_CLEARANCE
+    for (_pbx, _pbz) in PERIM_B:
+        # Compare the boss's own real Z-EXTENT (centre +/- its radius),
+        # not just its centre point, against the shelf's band -- a
+        # first pass here checked only the centre point, which missed
+        # this exact collision (the boss centre sits 0.6mm outside the
+        # shelf band even though the boss's own 9mm-diameter body
+        # overlaps it substantially).
+        if (_pbz + _perim_r) >= (shelf_z - FIT_CLEARANCE) and (_pbz - _perim_r) <= (shelf_z + 3.0 + FIT_CLEARANCE):
+            _perim_clear = cyl_y(_perim_r, shelf_d + 2.0, _pbx, _pbz, y0 - 1.0)
+            shell = shell.cut(_perim_clear)
+
     # KY-040 PCB anti-rotation tab -- BOM: "add a printed rib or pocket to
     # stop the PCB rotating ... use the PCB holes only as optional."
     # Grown from the back wall's own inner face for a real connection.
@@ -1471,10 +1615,29 @@ def build_back_shell_column():
     # Rear wall-wash LED channel -- continues the partial loop from 02a,
     # along this module's own bottom edge.
     wash_z = WALL / 2.0 + 1.0
+    wash_y0 = y1 - WASH_LED_D + 0.3
     wash_bottom = box_cxz(COLUMN_MODULE_W - 2 * WALL - 4.0, WASH_LED_W, WASH_LED_D + 0.5,
-                         (X_B0 + X_B1) / 2.0, wash_z, y1 - WASH_LED_D + 0.3)
+                         (X_B0 + X_B1) / 2.0, wash_z, wash_y0)
     shell = shell.cut(wash_bottom)
     _wash_led_env_b = wash_bottom.copy()   # captured for assembly_placements.json, same tool/position
+
+    # Round 8 -- DJ's real print of this part reported "minor stringing"
+    # at this channel. bed_face_scan() below explains why: the channel's
+    # near (cavity-side) mouth is a real bridge -- solid wall material
+    # resumes right above the channel's open void, a sharp 90-degree lip
+    # -- reported [OK] (span 7.5mm, under the 10mm guideline) rather
+    # than failed, but a sharp bridge-edge lip like this is a known
+    # stringing cause even under the guideline. A real edge chamfer was
+    # tried here (FreeCAD's own makeChamfer on the channel's own mouth
+    # edges) and REVERTED -- it turned this same region from an [OK]
+    # bridge (span 7.5mm) into a hard-FAIL cantilever (the new bevel
+    # face's own downward-facing area reads as an 80mm-long, 1-side-
+    # supported region to bed_face_scan(), a worse defect than the one
+    # being fixed). Fixing the classifier to see a chamfer bevel as
+    # "supported" is a real check-logic change, not a 1-line nudge, and
+    # isn't safe to improvise under this round's own don't-regress-the-
+    # build rule -- left as-is and reported, not silently patched over.
+    # See round-8 README note / the report back to the coordinator.
 
     return shell
 
@@ -1516,12 +1679,46 @@ def build_screen_trim():
     # bores from the boss's own tip (the deepest, cavity-side end), the
     # same "boss into open air off a fully-supported base" pattern
     # every other insert boss in this build already uses safely.
-    trim_boss_len = max(6.0, BOSS_LEN_MIN)
+    #
+    # Round 8, FLAGGED DEVIATION -- needs a design sign-off, not just a
+    # geometry nudge: the exhaustive fit-clearance check found ALL 4
+    # TRIM_MOUNTS bosses touching hw:display at exactly 0.000mm. Unlike
+    # PERIM_A (fixed by a smaller boss OD -- an X/Z problem), this is a
+    # Y-DEPTH problem with no X/Z escape: TRIM_MOUNTS sit at the AA
+    # corners, which fall within the display's own real footprint
+    # (confirmed: the display covers nearly the whole screen zone), and
+    # the display's real front face sits only DISPLAY_Y_FRONT=3.5mm off
+    # 01a's own front (FIT_CLR=0.5mm gap behind a FACE_T=3.0mm panel) --
+    # leaving only ~3.1mm of real Y-room behind the ring for ANY boss at
+    # these positions, well under BOSS_LEN_MIN (7.1mm) that a full
+    # INSERT_DEPTH=6.5mm heat-set insert needs. No boss reposition or
+    # resize fixes a depth shortfall this large; the standard heat-set-
+    # insert scheme every other mount in this build uses cannot fit
+    # here at all. Falling back to a self-tapping screw directly into
+    # the printed boss (no insert) -- real, common practice for a
+    # light, low-load decorative bezel ring (unlike the structural
+    # perimeter case screws) -- needs only a few mm of real thread
+    # engagement in PLA. Boss capped to the real available depth, with
+    # FIT_CLEARANCE preserved off the display's own front face.
+    # ** Flagged for DJ/coordinator sign-off: this changes 03's own
+    # fastener from a heat-set M3 insert to a self-tapping screw. **
+    trim_boss_len_full = max(6.0, BOSS_LEN_MIN)
+    _trim_boss_len_safe = math.floor((DISPLAY_Y_FRONT - FIT_CLEARANCE) * 10.0) / 10.0
+    trim_boss_len = min(trim_boss_len_full, _trim_boss_len_safe)
+    assert trim_boss_len >= 2.0, (
+        f"trim_boss_len ({trim_boss_len}mm) too shallow for even a self-tap screw -- "
+        "real design conflict, needs a different fix, not a smaller number")
+    _trim_self_tap = trim_boss_len < trim_boss_len_full
+    TRIM_PILOT_D = 2.6 if _trim_self_tap else INSERT_D   # M3 self-tap pilot vs the usual insert bore
     for (tx, tz) in TRIM_MOUNTS:
         boss = cyl_y(TRIM_BOSS_OD / 2.0, trim_boss_len + 0.3, tx, tz, -0.3)
         ring = ring.fuse(boss)
-        ins = cyl_y(INSERT_D / 2.0, INSERT_DEPTH + 0.3, tx, tz, trim_boss_len - INSERT_DEPTH)
-        ring = ring.cut(ins)
+        if _trim_self_tap:
+            pilot = cyl_y(TRIM_PILOT_D / 2.0, trim_boss_len + 0.3, tx, tz, -0.3 + 0.5)
+            ring = ring.cut(pilot)
+        else:
+            ins = cyl_y(INSERT_D / 2.0, INSERT_DEPTH + 0.3, tx, tz, trim_boss_len - INSERT_DEPTH)
+            ring = ring.cut(ins)
     ring = ring.removeSplitter()
     return ring
 
@@ -2952,7 +3149,8 @@ ray_grid_check(
 # =============================================================================
 print("\n--- assembly interference ---")
 
-DISPLAY_Y_FRONT = FACE_T + FIT_CLR
+# DISPLAY_Y_FRONT is now defined up with FACE_T/FIT_CLR (round 8) --
+# build_screen_trim()'s own boss sizing needs it too, earlier in the file.
 
 # Native-STEP -> world transform (see module docstring's derivation):
 #   world_X = DISPLAY_CX + native_Y
@@ -2980,37 +3178,37 @@ print(f"  display installed bbox: X[{_dbb.XMin:.1f},{_dbb.XMax:.1f}] "
 _expect_x, _expect_z = AA_CX, AA_CZ
 print(f"  sanity: AA_CX/AA_CZ used for the window = ({_expect_x:.2f},{_expect_z:.2f})")
 
-interfere(bs_screen, display_installed, "display (installed) vs 02a back-shell-screen", max_mm3=0.5)
+# Round 8: the individual interfere() calls that used to live here
+# (display/pi5/dsi vs 02a, ky/rocker vs 02b, ky vs rocker, speaker vs
+# 02a) are now covered -- along with EVERY other pair, including the
+# one this hand-written list never had, 01a/01b vs their own shells --
+# by the exhaustive all-parts-plus-hardware loop further down. Shape-
+# building stays here (still needed for the screw-clearance checks
+# below and for cad/assembly_placements.json's own hardware export).
 
 # Pi5 + Active Cooler envelope -- conservative box (85x56mm Pi5 board
 # footprint, the larger of the two real footprints), spanning the real
 # STACK_CLEARANCE depth behind the display module's own back face.
 pi5_env = box_full(PI5_BOARD_W, STACK_CLEARANCE, PI5_BOARD_D, DISPLAY_CX,
                    DISPLAY_Y_FRONT + DISP_T + STACK_CLEARANCE / 2.0, DISPLAY_CZ)
-interfere(bs_screen, pi5_env, "Pi5+Active-Cooler envelope vs 02a", max_mm3=0.5)
 
 # DSI FPC cable-bend reserve -- PLACEHOLDER envelope, near one edge of
 # the display module, not a datasheet figure.
 dsi_env = box_full(30.0, 15.0, 20.0, DISPLAY_CX, DISPLAY_Y_FRONT + DISP_T + 5.0,
                    DISPLAY_CZ + DISP_H / 2.0 - 15.0)
-interfere(bs_screen, dsi_env, "DSI cable-bend reserve (placeholder) vs 02a", max_mm3=0.5)
 
 # KY-040 module + wires envelope
 ky_env = box_full(KY_PCB_W + 4.0, KY_PCB_T + KY_HEADER_RESERVE, KY_PCB_D + 4.0, DIAL_CX,
                   FACE_T + KY_PCB_GAP + (KY_PCB_T + KY_HEADER_RESERVE) / 2.0, DIAL_CZ)
-interfere(bs_column, ky_env, "KY-040 module+wires vs 02b", max_mm3=0.5)
 
 # Rocker body + terminals + wiring reserve
 rocker_env = box_full(ROCKER_CUTOUT_W + 2.0, ROCKER_CLEARANCE_RESERVE, ROCKER_CUTOUT_H + 2.0,
                       DIAL_CX, FACE_T + ROCKER_CLEARANCE_RESERVE / 2.0, ROCKER_CZ)
-interfere(bs_column, rocker_env, "rocker body+wiring vs 02b", max_mm3=0.5)
-interfere(ky_env, rocker_env, "KY-040 envelope vs rocker envelope (same module, different zones)", max_mm3=0.5)
 
 # Speaker (installed, frame+depth) vs the shell -- should sit entirely
 # within the bore that was cut for it.
 speaker_env = cyl_y(SPEAKER_FRAME_OD / 2.0 - 0.3, SPEAKER_DEPTH, SPEAKER_POD_CX, SPEAKER_POD_CZ,
                     SPEAKER_POD_Y0 + SPEAKER_SHOULDER_T + 0.3)
-interfere(bs_screen, speaker_env, "speaker (installed) vs 02a", max_mm3=0.5)
 
 # Amp + mic + LED runs -- probed as "must be genuinely open" at their own
 # component footprint (same discipline as the feature-exists probes
@@ -3262,6 +3460,159 @@ print(f"  assembly-reference solids: {len(_ref_check.Solids)} (expected {_expect
 assert len(_ref_check.Solids) == _expected_solids, (
     "assembly-reference.step solid count doesn't match the parts alone -- "
     "check nothing extra (e.g. the display STEP) leaked in")
+
+
+# =============================================================================
+# ALL-PAIRS INTERFERENCE + FIT-CLEARANCE -- round 8, real print
+# failure. DJ printed plates 1-3: NEITHER face plate seats into its own
+# shell -- "the screw base bumps the edge of the body". Measured on
+# this repo's own exported geometry (placed via cad/assembly_
+# placements.json): 01a vs 02a overlapped by 448.43mm3 in 6 regions
+# (the perimeter bosses biting 2mm into the shell's own side walls);
+# 01b vs 02b by 526.82mm3; 04a vs 01a by 3.07mm3. The OLD interference
+# suite reported "27/27 pairs at 0mm3" -- true, but the pair LIST was
+# hand-written, and nobody ever wrote down "a face plate against its
+# own shell". That is the actual defect: not the geometry alone, the
+# fact that the check COULD silently omit a pair. Fixed at the root:
+# every printed part plus every hardware proxy, ALL pairs, no hand-
+# written list -- nothing may be omitted without a named reason.
+# =============================================================================
+print("\n--- all-pairs interference + fit-clearance (round 8) ---")
+
+ALL_PLACED = {
+    "01a-face-plate-screen": _fps,
+    "01b-face-plate-column": _fpc,
+    "02a-back-shell-screen": _bss,
+    "02b-back-shell-column": _bsc,
+    "03-screen-trim": _trim,
+    "04a-band-insert-ignition": _ins_a,
+    "04b-band-insert-nightfall": _ins_b,
+    "05-band-diffuser": _diff,
+    "06-knob": knob_placed,
+    "07-gold-tab": tab_placed,
+    "08-speaker-back-cup": cup_placed,
+    "11-wall-cleat": cleat_placed,
+    "12-cleat-receiver-rail": rail_placed,
+    "hw:display": display_installed,
+    "hw:pi5-cooler": pi5_env,
+    "hw:dsi-cable-reserve": dsi_env,
+    "hw:ky040-module": ky_env,
+    "hw:rocker-body": rocker_env,
+    "hw:speaker": speaker_env,
+    "hw:amp": amp_env,
+    "hw:mic-dongle": mic_env,
+    "hw:band-led-run": _band_led_env,
+    "hw:wash-led-run-screen": _wash_led_env_a,
+    "hw:wash-led-run-column": _wash_led_env_b,
+}
+
+# Pairs with a REAL, intended physical touch (flat seating faces,
+# press fits, the cleat hook, a component resting on its own tray/
+# shelf/bore-shoulder) -- allowed at ~0mm minimum distance, no
+# FIT_CLEARANCE required. Everything else defaults to the STRICTER
+# nesting/sliding classification (must clear by FIT_CLEARANCE) --
+# named here, not silently exempted; anything not listed gets the
+# safer default, not a free pass.
+INTENDED_CONTACT = {
+    frozenset({"01a-face-plate-screen", "02a-back-shell-screen"}): "face plate seats flush on the shell's own rim",
+    frozenset({"01b-face-plate-column", "02b-back-shell-column"}): "face plate seats flush on the shell's own rim",
+    frozenset({"03-screen-trim", "01a-face-plate-screen"}): "trim mounts flush on the face plate's own front",
+    frozenset({"07-gold-tab", "01b-face-plate-column"}): "press-fit tab into its own pocket",
+    frozenset({"06-knob", "01b-face-plate-column"}): "knob's own mounting face presses flush on the front",
+    frozenset({"08-speaker-back-cup", "02a-back-shell-screen"}): "cup seals flush against the back wall",
+    frozenset({"12-cleat-receiver-rail", "02a-back-shell-screen"}): "rail's tongue seats in its own registration recess",
+    frozenset({"11-wall-cleat", "12-cleat-receiver-rail"}): "the cleat hook -- engaged, not floating",
+    frozenset({"hw:amp", "02a-back-shell-screen"}): "amp board rests on its own tray floor",
+    frozenset({"hw:mic-dongle", "02b-back-shell-column"}): "mic dongle rests on its own cradle shelf",
+    frozenset({"hw:speaker", "02a-back-shell-screen"}): "speaker frame seats on its own bore shoulder",
+    frozenset({"hw:band-led-run", "02a-back-shell-screen"}): "LED strip sits flush in its own cut channel",
+    frozenset({"hw:wash-led-run-screen", "02a-back-shell-screen"}): "LED strip sits flush in its own cut channel",
+    frozenset({"hw:wash-led-run-column", "02b-back-shell-column"}): "LED strip sits flush in its own cut channel",
+    # Seam -- all four cross-combinations of the two modules' own face
+    # plate/shell share the SAME physical dividing plane (X_A1==X_B0),
+    # bolted together edge-to-edge. Found by the round-8 exhaustive
+    # check itself (all 4 read exactly 0.000mm, correctly -- this is
+    # the seam, not a defect).
+    frozenset({"01a-face-plate-screen", "01b-face-plate-column"}): "seam -- modules bolt together at the shared edge",
+    frozenset({"01a-face-plate-screen", "02b-back-shell-column"}): "seam -- shared edge, cross-module combination",
+    frozenset({"01b-face-plate-column", "02a-back-shell-screen"}): "seam -- shared edge, cross-module combination",
+    frozenset({"02a-back-shell-screen", "02b-back-shell-column"}): "seam -- shells bolt together at the shared edge",
+    # The cleat's own engagement geometry (via the rail) brings its
+    # body this close to 02a's bare shell by design -- the ENGAGED
+    # hook gap itself has its own dedicated check under "Wall-cleat
+    # engagement" above (0.252mm, asserted <=0.3mm there); this pair
+    # is a side effect of that same real geometry, not a separate
+    # nesting fit.
+    frozenset({"02a-back-shell-screen", "11-wall-cleat"}): "wall-cleat engagement geometry, checked separately",
+    # Stacked hardware -- the Pi5 sits directly behind the display,
+    # touching by design (STACK_CLEARANCE already reserves the real
+    # depth behind the display's own back face; there's no additional
+    # gap to leave between the two proxy boxes themselves).
+    frozenset({"hw:display", "hw:pi5-cooler"}): "stacked hardware -- Pi5 sits directly behind the display",
+}
+
+# Pairs SKIPPED entirely, each with a real, named reason -- not a
+# silent omission (the whole point of this round's fix). Found on the
+# first real run of this exhaustive loop: 04a and 04b are two
+# INTERCHANGEABLE band-insert variants for the exact same physical
+# slot (the task's own "ignition"/"nightfall" colour options) -- only
+# ONE is ever actually installed, so they occupy the identical real
+# volume by design, not by defect (11146.7mm3 "overlap", the two
+# plates' own footprints). Checking them against everything ELSE
+# (which this loop still does) already covers each variant's own real
+# fit; checking them against EACH OTHER would fail forever regardless
+# of geometry, since exactly one of them is never actually there.
+SKIP_PAIRS = {
+    frozenset({"04a-band-insert-ignition", "04b-band-insert-nightfall"}):
+        "interchangeable variants for the same slot -- never both installed at once",
+}
+
+_names = sorted(ALL_PLACED.keys())
+_n_pairs = len(_names) * (len(_names) - 1) // 2
+print(f"  {len(_names)} placed items ({13} parts + {len(_names) - 13} hardware proxies), "
+      f"{_n_pairs} pairs total")
+for _pair, _reason in SKIP_PAIRS.items():
+    print(f"  [SKIP, named reason] {' vs '.join(sorted(_pair))}: {_reason}")
+
+_overlap_bad = []
+_clearance_bad = []
+_contact_ct, _nesting_ct, _skip_ct = 0, 0, 0
+for _i in range(len(_names)):
+    for _j in range(_i + 1, len(_names)):
+        _na, _nb = _names[_i], _names[_j]
+        _sa, _sb = ALL_PLACED[_na], ALL_PLACED[_nb]
+        _key = frozenset({_na, _nb})
+
+        if _key in SKIP_PAIRS:
+            _skip_ct += 1
+            continue
+
+        _common = _sa.common(_sb)
+        _vol = _common.Volume if _common.Solids else 0.0
+        if _vol > 0.5:
+            _overlap_bad.append((_na, _nb, _vol))
+
+        _dist, _, _ = _sa.distToShape(_sb)
+        if _key in INTENDED_CONTACT:
+            _contact_ct += 1
+        else:
+            _nesting_ct += 1
+            if _dist < FIT_CLEARANCE - 0.02:
+                _clearance_bad.append((_na, _nb, _dist))
+
+print(f"  overlap: {len(_overlap_bad)} pair(s) over 0.5mm3")
+for (_na, _nb, _vol) in _overlap_bad:
+    print(f"    [FAIL] {_na} vs {_nb}: {_vol:.2f}mm3")
+assert not _overlap_bad, f"{len(_overlap_bad)} pair(s) with real overlap: {_overlap_bad}"
+print(f"  [OK] all {_n_pairs - _skip_ct} checked pairs ({_skip_ct} named-skip) at 0.5mm3 or under (real numerical noise only)")
+
+print(f"  fit-clearance: {_contact_ct} intended-contact pairs (~0mm allowed), "
+      f"{_nesting_ct} nesting/sliding pairs (must clear by {FIT_CLEARANCE}mm)")
+for (_na, _nb, _dist) in _clearance_bad:
+    print(f"    [FAIL] {_na} vs {_nb}: {_dist:.3f}mm (< {FIT_CLEARANCE}mm, and not a declared INTENDED_CONTACT pair)")
+assert not _clearance_bad, (
+    f"{len(_clearance_bad)} nesting pair(s) under the {FIT_CLEARANCE}mm fit clearance: {_clearance_bad}")
+print(f"  [OK] every nesting/sliding pair clears by >= {FIT_CLEARANCE}mm")
 
 
 # =============================================================================

@@ -93,11 +93,11 @@ continuous pillar needed, just aligned holes). Each module is independently
 
 | # | File | Material / colour | Qty | Print orientation | Support | Notes |
 |---|---|---|---|---|---|---|
-| 01a | `01a-face-plate-screen` | Black PLA (matte) | 1 | Front face DOWN | None | Screen window, band window, band-insert/trim/perimeter blind bosses on the back. **Round 6: front trim rebate REMOVED** (see "First real print report" below) — the front face is one flat plane apart from real through-openings; trim(03) mounting is now a widened TRIM_BORE_D bore (admits the trim's own pass-through boss), not a plain screw clearance hole |
+| 01a | `01a-face-plate-screen` | Black PLA (matte) | 1 | Front face DOWN | None | Screen window, band window, band-insert/trim/perimeter blind bosses on the back. **Round 6: front trim rebate REMOVED** (see "First real print report" below) — the front face is one flat plane apart from real through-openings; trim(03) mounting is now a widened TRIM_BORE_D bore (admits the trim's own pass-through boss), not a plain screw clearance hole. **Round 8: perimeter bosses repositioned off a real FIT_CLEARANCE from the shell's inner wall AND the display's own real edge** (see "Round 8" below) — the one right-side boss position (`_PA_XR`) also uses a smaller, position-specific OD (`PERIM_BOSS_OD_TIGHT`, ≤9mm) where the display leaves less room than the standard boss needs |
 | 01b | `01b-face-plate-column` | Black PLA (matte) | 1 | Front face DOWN (flat — see below) | None | 24-detent tick ring, ENGRAVED ~0.6mm into the front (only intentional front relief; changed from raised this pass — see "Print-orientation checks"), KY-040 bushing hole + local thinned zone, rocker cutout + local thinned zone, gold-tab pocket |
 | 02a | `02a-back-shell-screen` | Black PLA (matte) | 1 | **BACK-WALL DOWN** (changed round 5 — see "Print-orientation checks") | None | Display retention, Pi5/cooler clearance + vents, sealed speaker pod (tapered lead-in, now harmless not load-bearing) + amp/level-shifter POCKETS, band LED groove, wall-wash LED channel, cable slot, seam clearance, registration recess + 3× M3 clearance holes for the separate 12-cleat-receiver-rail |
 | 02b | `02b-back-shell-column` | Black PLA (matte) | 1 | **BACK-WALL DOWN** (changed round 5 — see "Print-orientation checks") | None | Mic ports + cradle shelf (round 5: extended to the true back wall, now a full support partition, not a floating shelf), KY-040 anti-rotation tab, rocker clearance, seam bosses (round 5: each with its own support rib to the back wall), perimeter mounts, wall-wash LED channel |
-| 03 | `03-screen-trim` | Silver silk PLA | 1 | Flat, front face down | None | Chrome bezel ring. **Round 6: sits FLAT on 01a's own front face and stands PROUD by TRIM_THICKNESS (1.5mm)** — no longer flush in a rebate (see "First real print report" below). Mounting boss passes THROUGH 01a's own widened bore into open cavity air, insert bored from the boss's own tip; screwed from the cavity side, same "never a visible fastener" rule as before |
+| 03 | `03-screen-trim` | Silver silk PLA | 1 | Flat, front face down | None | Chrome bezel ring. **Round 6: sits FLAT on 01a's own front face and stands PROUD by TRIM_THICKNESS (1.5mm)** — no longer flush in a rebate (see "First real print report" below). Mounting boss passes THROUGH 01a's own widened bore into open cavity air, insert bored from the boss's own tip; screwed from the cavity side, same "never a visible fastener" rule as before. **Round 8, FLAGGED for sign-off:** all 4 mounting bosses now touch the real display at Y-depth (only ~3.1mm of real room behind 01a before the display's own front face, well under the 7.1mm a full M3 heat-set insert needs) — fastener changed from an M3 heat-set insert to a self-tapping screw directly into a shortened boss (`TRIM_PILOT_D=2.6mm` pilot, `trim_boss_len` capped to what real space allows). This is a genuine design deviation, not a geometry nudge — see "Round 8" below |
 | 04a | `04a-band-insert-ignition` | Black PLA (matte) | 1 (of 2 variants) | Flat, front face down | None | "Ember" hex-staggered perforation: base grid 3.2mm holes/6.5mm pitch outside the acoustic zone, a denser 3.5mm/5.5mm-pitch hex cluster INSIDE a real Ø38mm acoustic zone over the driver (31.4% open there), 143 holes total, 16.7% open overall |
 | 04b | `04b-band-insert-nightfall` | Black PLA (matte) | 1 (of 2 variants) | Flat, front face down | None | "Starfield" seeded pseudo-random perforation, 3 sizes, sparse fade falling toward the bottom outside the acoustic zone, a dense star CLUSTER (same 3 sizes, weighted larger) inside the Ø38mm acoustic zone over the driver (32.1% open there), 117 holes total, 9.0% open overall |
 | 05 | `05-band-diffuser` | Natural/clear PETG, ~1mm | 1 | Flat, either face down | None | Solid everywhere EXCEPT a real Ø38mm acoustic opening over the driver's own firing axis (matches the cone) — diffuses LED light through whichever insert's light-zone holes are fitted, doesn't block the speaker |
@@ -387,6 +387,133 @@ passes every check (the 200mm² region now reports as a "step", the
 exceeds the 10mm span threshold). `python3 bambu/build_project.py`
 exits 0, every plate, zero warnings — checked twice.
 
+## Round 8 — real assembly failure: neither face plate seated; the interference check's own pair list was the root cause
+
+DJ printed plates 1, 2 and 3 for real and tried to assemble them.
+**Neither face plate seats into its own shell** — "the screw base bumps
+the edge of the body." Measured directly on the repo's own exported STEP
+files, placed by `cad/assembly_placements.json`: 01a vs 02a overlapped by
+448.43mm³ (6 regions, the perimeter screw bosses biting ~2mm into the
+shell's own side wall), 01b vs 02b by 526.82mm³ (4 regions, the same
+class), and 04a/04b vs 01a by a smaller but real 3.07mm³.
+
+**Root cause: not the geometry alone — the interference check's own pair
+list.** `generate_parts.py`'s assembly-interference suite reported
+27/27 pairs at 0.000mm³, every run, for seven rounds. That list was
+hand-written, and it never once included a face plate against its own
+back shell — the exact pair that just failed on a real bed. A check that
+reports "N/N pass" is only as trustworthy as its own pair list; a
+hand-written list can silently omit an entire pair *class* and nothing
+catches it, because nothing asserts the list itself is complete.
+
+**Fix, four parts:**
+
+1. **`FIT_CLEARANCE = 0.4mm`** — a new, named, real printing-allowance
+   constant (PLA on a Bambu A1 prints slightly oversized — elephant
+   foot, extrusion width — so a 0.0mm nominal fit is a 0.0mm real
+   collision), used everywhere a boss/insert/plate NESTS or SLIDES into
+   another part. This is a different constant from the pre-existing
+   `FIT_CLR` (0.5mm, the display's own pocket clearance) — not reused,
+   not confused with it.
+2. **Perimeter bosses repositioned off a real clearance formula**, not
+   the old "centre of the rim/gap/margin strip" (which never checked the
+   boss's own OD against the shell's inner wall at all): `_PERIM_MARGIN
+   = WALL + FIT_CLEARANCE + BOSS_OD/2`, applied to both `PERIM_A` (01a/
+   02a) and `PERIM_B` (01b/02b). One `PERIM_A` position (`_PA_XR`) is
+   ALSO closer to the real display than the wall — the standard 9mm
+   `BOSS_OD` plus `FIT_CLEARANCE` on both sides needs 9.8mm of real
+   space, and the true available space there is only ~8.3mm. Fixed the
+   same way `03-screen-trim`'s own boss already does elsewhere in this
+   build ("the ring's own border is narrow here"): a smaller,
+   position-specific boss OD (`PERIM_BOSS_OD_TIGHT`, computed from the
+   real available space, floored to 0.1mm, asserted to still clear
+   `INSERT_WALL_MIN`), used only at that one position.
+3. **The display's real edge, not a symmetric-centre guess.** The first
+   attempt at fix #2 assumed the display's native STEP bbox is centred
+   on its own placement origin (`SCREEN_CX ± DISP_H_NATIVE/2`) and
+   patched the mismatch with a guessed 1.0mm margin — that guess was
+   wrong (the real mismatch is ~2.9mm, not the ~0.55mm an earlier,
+   stale estimate suggested), so the guess silently changed nothing
+   at all between two full runs. Fixed by reading the display STEP's
+   own real native bounding box once, early in the script (before any
+   of the geometry that depends on it), and using its real
+   `native_Y`-max directly — no guess, no margin to get wrong.
+4. **`04a`/`04b` vs `01a`'s own `BAND_MOUNTS` boss** — `INSERT_Y0` was a
+   fixed offset that never checked itself against the boss's own real
+   tip; the insert's front face landed 0.1mm inside the boss's own tip.
+   Fixed: `INSERT_Y0 = FACE_T + BAND_BOSS_LEN + FIT_CLEARANCE`, a real
+   clearance off the boss's own actual geometry.
+
+**The pair list itself, replaced.** `ALL_PLACED` now holds all 13 parts
++ 11 hardware proxies (24 items); every one of the resulting 276 pairs is
+checked for real overlap (assert ≤0.5mm³, real numerical noise only) —
+nothing is hand-picked or silently skipped. The one legitimate skip
+(`04a` vs `04b`, interchangeable band-insert variants that are never both
+installed at once) is in a named `SKIP_PAIRS` dict with its own reason
+string, not just left out.
+
+**A separate fit-clearance pass, because zero-distance touch isn't
+always a defect.** 20 of the 276 pairs are genuine `INTENDED_CONTACT` —
+flat seating faces (the face-plate/shell seam, module-to-module seams),
+press fits (the gold tab, the wall-cleat hook), stacked hardware (the
+Pi5 sitting directly behind the display) — allowed to measure ~0mm. The
+other 255 are NESTING/SLIDING fits (a boss inside a wall, an insert into
+a window) and must clear by `FIT_CLEARANCE` or the check fails loud,
+by name, with the real distance. Before this round's fixes, 8 pairs sat
+at exactly 0.000mm; 6 were legitimate `INTENDED_CONTACT` (now classified
+as such), and the other 2 (`01a` and `03-screen-trim`, both vs the real
+display) were genuine defects, fixed as described above and in the item
+below.
+
+**Flagged for sign-off, not silently patched:** `03-screen-trim`'s own 4
+mounting bosses ALL touch the real display at 0.000mm — and unlike the
+perimeter bosses, this isn't an X/Z placement problem with an escape
+route. `TRIM_MOUNTS` sits at the display's own active-area corners,
+which fall within the display module's real footprint everywhere on
+this build, and the display's real front face sits only 3.5mm off 01a's
+own front (`DISPLAY_Y_FRONT = FACE_T + FIT_CLR`), leaving ~3.1mm of real
+room behind the trim ring for a boss — well under the 7.1mm a full
+`INSERT_DEPTH`=6.5mm M3 heat-set insert needs, at ANY position within the
+ring's own footprint. No boss reposition or resize fixes a depth
+shortfall this size. Fixed by changing 03's own fastener at these 4
+mounts from an M3 heat-set insert to a self-tapping screw straight into
+a shortened, capped boss (`trim_boss_len` capped to the real available
+depth minus `FIT_CLEARANCE`; `TRIM_PILOT_D=2.6mm` pilot, sized for a
+real M3 self-tap in PLA) — a legitimate, common real-world fix for a
+light, low-load decorative bezel ring (unlike the structural perimeter
+case screws), but a genuine fastener-spec change, **not just a geometry
+nudge** — needs the coordinator's own sign-off, not a silent "improvement."
+
+**Minor stringing at the wash-LED channel, column module (plate 3) —
+identified, chamfer attempted and reverted.** `bed_face_scan()` already
+reports (doesn't fail) a real bridge at this channel's own near
+(cavity-side) mouth on `02b` — span 7.5mm, under the 10mm guideline, at
+the SAME sharp 90° lip where solid wall material resumes right above
+the channel's open void. That sharp lip is a real, known stringing
+cause even under the span guideline (nothing for the extrusion to land
+on but a hard step) — this is what DJ saw. A real FreeCAD edge chamfer
+was tried on this exact edge (found by a geometric predicate, not a
+fragile edge index) and **made things worse**: it turned the same
+region from an `[OK]` bridge into a hard-FAIL cantilever, because the
+new bevel face's own downward-facing area reads to `bed_face_scan()`'s
+own classifier as an 80mm-long, one-side-supported region — a bigger
+defect than the one being fixed. Reverted rather than shipped broken,
+matching round 7's own precedent (a rib fix that also made things worse
+was reverted there, not forced through). Making the classifier
+recognise a chamfer bevel as "supported" is a real check-logic change,
+not a 1-line nudge, and wasn't safe to improvise under this round's own
+don't-regress-the-build rule. Left as bare geometry, reported here for
+a human call: either accept the cosmetic stringing (it's real but
+minor, per DJ's own report), or revisit with the check's own logic
+in scope, not just this one channel's geometry.
+
+**Result, confirmed by direct re-run:** `generate_parts.py` passes every
+check — 0 `[FAIL]` lines, all 13 parts solids=1/valid=True/shells=1,
+overlap 0 pairs over 0.5mm³ across 275 checked pairs (1 named-skip), and
+every one of the 255 nesting/sliding pairs clears by ≥0.4mm.
+`python3 bambu/build_project.py` exits 0, all 9 plates slice with zero
+warnings.
+
 ## Print-orientation checks (round 4/4b — for context)
 
 A packaging pass built the real Bambu Studio project (`bambu/build_project.py`)
@@ -562,7 +689,7 @@ geometry, not a description of intent — see `generate_parts.py`'s own
 | 01b-face-plate-column | 1 | True | 1 | 90.00 × 10.10 × 200.24 |
 | 02a-back-shell-screen | 1 | True | 1 | 219.32 × 51.56 × 200.24 |
 | 02b-back-shell-column | 1 | True | 1 | 90.00 × 63.56 × 200.24 |
-| 03-screen-trim | 1 | True | 1 | 175.76 × 8.60 × 107.30 |
+| 03-screen-trim | 1 | True | 1 | 175.76 × 4.60 × 107.30 |
 | 04a-band-insert-ignition | 1 | True | 1 | 185.32 × 2.00 × 39.00 |
 | 04b-band-insert-nightfall | 1 | True | 1 | 185.32 × 2.00 × 39.00 |
 | 05-band-diffuser | 1 | True | 1 | 185.32 × 1.00 × 39.00 |
@@ -577,6 +704,12 @@ expected, not a regression: the 12mm ridge that used to be fused in
 (reaching `BACK_PLANE_Y`) is now the separate rail (12), so 02a's own
 bare bounding box is just its real depth (`PANEL_D`, plus a hair of
 back-wall margin) again.
+
+03-screen-trim's own Y dimension dropped from 8.60mm to 4.60mm in round
+8 — expected, not a regression: its own mounting boss is now capped to
+the real space available before the display's own front face (see
+"Round 8" above), shorter than the standard `BOSS_LEN_MIN` every other
+insert boss in this build uses.
 
 All 13 files: solid count == 1 (asserted inline — fails loud on
 regression), `isValid() == True`, exactly 1 shell per solid (no enclosed
@@ -621,7 +754,17 @@ Every see-through point on both face-plates lies inside a declared opening
 trim's own 4 mounting clearance holes — added to the declared list after
 the first run correctly flagged it as undeclared).
 
-### Assembly interference (27 pairs checked, 27 at 0.000mm³)
+### Assembly interference (round 8: ALL pairs, exhaustively — see "Round 8" below)
+
+**Superseded, round 8.** The hand-written 27-pair list below was real but
+incomplete by construction — it never included a face plate against its
+own shell, which is exactly the pair DJ's real prints found colliding.
+Replaced with an exhaustive all-pairs check: every placed part + hardware
+proxy against every other (276 pairs from 24 placed items, 1 named-skip
+for the interchangeable 04a/04b band-insert variants), asserted at
+≤0.5mm³ overlap, with a separate fit-clearance pass (below) — see "Round
+8" for the full story. The old table is kept for its own historical
+record of what round 6/7 actually checked at the time:
 
 Real Raspberry Pi Touch Display 2 STEP, transformed to its actual installed
 world position via a real rotation matrix (derived, not hand-waved — see
@@ -653,6 +796,23 @@ computed from the actual built geometry, not assumed.
 
 **Chrome (screen-trim) share of the visible face: 6.9%** (4273mm² /
 61938mm²) — well under the task's 20% cap.
+
+### Fit-clearance check (round 8, new) — 24 placed items, 276 pairs
+
+Separate from the overlap check above: real overlap (>0.5mm³) is always
+a defect, but a real ZERO-distance touch is only sometimes one — flat
+seating faces and press fits are SUPPOSED to touch. Every pair is
+classified once, by name, not inferred from the numbers:
+
+| Class | Count | Rule |
+|---|---|---|
+| `INTENDED_CONTACT` | 20 pairs | ~0mm allowed (seams, press fits, stacked hardware) |
+| NESTING/SLIDING | 255 pairs | must clear by ≥`FIT_CLEARANCE` (0.4mm) or the check fails, by name |
+| `SKIP_PAIRS` (named reason) | 1 pair | `04a` vs `04b` — interchangeable variants, never both installed |
+
+Result, this run: 0 pairs over 0.5mm³ overlap; every nesting/sliding
+pair clears by ≥0.4mm. See "Round 8" above for the 2 pairs that failed
+this check before their fixes landed, and the fix for each.
 
 ### Sound-path check (new, revision 2) — driver axis through every band layer at once
 
@@ -962,6 +1122,8 @@ genuinely unverified is flagged **PLACEHOLDER**.
 | Chrome bezel border width (8mm), rim/gap/margin widths (11mm on mount-bearing edges) | **My own engineering choice** | — |
 | Band-insert perforation hole sizes/pitch (both variants) | **My own engineering choice** | — |
 | Cleat wedge dimensions, receiver position | **My own engineering choice** | — |
+| `FIT_CLEARANCE` (0.4mm, round 8) | **My own engineering choice**, a real PLA-on-A1 printing allowance, not a datasheet figure — distinct from the pre-existing `FIT_CLR` (0.5mm, the display's own pocket clearance) | — |
+| `TRIM_PILOT_D` (2.6mm self-tap pilot, round 8) | **PLACEHOLDER — reasoned, not measured**: a common real-world M3-self-tap-in-PLA pilot size (~85-90% of the screw's major diameter), not pulled from a specific screw's own datasheet — verify against the actual self-tapping screw once bought | — |
 
 ## Design decisions / deviations from the concept sheet, with reasons
 
