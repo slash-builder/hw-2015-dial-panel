@@ -656,6 +656,16 @@ MIC_CRADLE_CZ = MIC_CRADLE_Z_TOP - MIC_CRADLE_H / 2.0
 # =============================================================================
 SEAM_BOLT_ZS = [BOTTOM_RIM + 15, BAND_CZ, SCREEN_CZ - 20, SCREEN_Z1 - 15]
 SEAM_BOSS_LEN = max(8.0, BOSS_LEN_MIN)
+# fix/column-screw-access, round 2: the seam boss's own insert -- open
+# end at the boss's NEAR (wall-facing) face, not its far/cavity-facing
+# tip (see build_back_shell_column()'s own "Seam -- BOSSES" comment for
+# why: this bolt enters from 02a's cavity side and crosses the seam
+# directly, unlike every OTHER blind-insert boss in this file). Hoisted
+# to module level (not local to build_back_shell_column()) because
+# build_back_shell_screen()'s own seam clearance hole and the
+# FASTENER-ACCESS/BORE-STAYS-OPEN checks below all need the SAME real
+# number, not three independent copies of the same formula.
+SEAM_INSERT_X0 = X_B0 + WALL - 0.3
 
 PERIM_BOSS_LEN = max(7.0, BOSS_LEN_MIN)
 # Round 8: repositioned from "centre of the rim/gap/margin strip" to a
@@ -1789,11 +1799,57 @@ def build_back_shell_column():
 
     # Seam -- BOSSES (blind inserts) on the LEFT wall (X_B0 side),
     # matching 02a's own clearance holes.
+    #
+    # fix/column-screw-access, round 2 (found by the coordinator
+    # independently verifying this branch's own PERIM_B fix, not by
+    # this branch's own first pass): the ORIGINAL code below cut the
+    # insert bore, THEN fused the round-5 support rib on top of it, in
+    # the SAME loop iteration -- and the rib's own box (X[66.66,76.66]
+    # Y[12.5,66.56] Z[sz+-5.5]) fully CONTAINS the insert bore's own
+    # region (X[69.46,75.96] Y[16,20] Z[sz+-2]) at every dimension, so
+    # the fuse silently refilled the bore it had just cut. Measured
+    # directly on 43b46e5's own real exported STEP, not reasoned from
+    # the code: 81.68 of 81.68mm3 (100%) solid inside the bore, at ALL
+    # FOUR seam positions -- the column module could not have been
+    # bolted to the screen module at all, and nothing in this build's
+    # existing check suite (including this branch's OWN new FASTENER-
+    # ACCESS, which deliberately stops its own travel short of the
+    # target insert) ever probed the bore itself on the finished part
+    # to catch it (see BORE-STAYS-OPEN below, added specifically
+    # because of this).
+    #
+    # Fixed two ways, together:
+    #   1. every ADDING op (boss, rib) for every sz now happens BEFORE
+    #      any REMOVING op (the wall clearance bore, the insert bore)
+    #      -- in a separate, later pass -- so no fuse can ever refill
+    #      a cut made earlier in the same build again, structurally,
+    #      not just by remembering the right order this one time.
+    #   2. the insert's own open end moved from the boss's FAR (deep-
+    #      cavity) face to its NEAR (wall-facing) face, and a real
+    #      CLEAR_D clearance bore now runs through 02b's OWN left wall
+    #      to reach it. The old position copied the OTHER blind-insert
+    #      bosses in this file (PERIM_A/B, BAND_MOUNTS), where the
+    #      screw enters through the OPPOSITE part's own back wall,
+    #      crosses open cavity, and reaches the boss's cavity-facing
+    #      tip -- but this joint doesn't work that way: the boss is
+    #      fused to 02b's OWN wall, and the bolt (per the module
+    #      docstring's own "through-bolts across the seam wall") enters
+    #      from 02a's cavity side and crosses the seam directly into
+    #      it, never touching open cavity air on 02b's own side at all.
+    #      Even with bore #1 restored at the OLD (far) position, the
+    #      bolt would still have faced 02b's own solid WALL (3mm) plus
+    #      1.8mm of the boss's own base -- a real access gap on top of
+    #      the refill defect, not a second instance of it. 02a's own
+    #      matching clearance hole (build_back_shell_screen()'s own
+    #      "Seam -- clearance holes through the RIGHT wall", X range
+    #      [X_A1-WALL-2, X_A1+2] = [59.66,66.66]) already reaches PAST
+    #      X_A1==X_B0 by 2mm; the new wall bore below starts at X_B0-2
+    #      and reaches to the boss's own near face, so the two overlap
+    #      by a real 4mm across the seam plane -- a continuous open
+    #      path, not just two holes that happen to be near each other.
     for sz in SEAM_BOLT_ZS:
         boss = cyl_x(BOSS_OD / 2.0, SEAM_BOSS_LEN + 0.3, X_B0 + WALL - 0.3, y0 + 15.0, sz)
         shell = shell.fuse(boss)
-        ins = cyl_x(INSERT_D / 2.0, INSERT_DEPTH, X_B0 + WALL + SEAM_BOSS_LEN - INSERT_DEPTH + 0.3, y0 + 15.0, sz)
-        shell = shell.cut(ins)
         # Round 5: found by direct isolation testing against the REAL
         # slicer, not by geometric reasoning alone (my own overhang_scan,
         # a per-planar-face check, never flagged this -- a round boss's
@@ -1815,6 +1871,26 @@ def build_back_shell_column():
         rib = box_at(SEAM_BOSS_LEN + 2.0, y1 - _rib_y0, _rib_h,
                      X_B0 + WALL - 1.0, _rib_y0, sz - _rib_h / 2.0)
         shell = shell.fuse(rib)
+    shell = shell.removeSplitter()
+
+    # Seam -- bolt ACCESS: cut in a SEPARATE pass, strictly after every
+    # fuse above, so nothing can refill these again. A CLEAR_D shank
+    # clearance bore runs from just outside the seam face (X_B0-2.0,
+    # overlapping 02a's own matching hole) through 02b's own left WALL
+    # and the boss's own base, to the boss's near face; the wider
+    # INSERT_D bore then opens right there and runs INSERT_DEPTH deep
+    # into the boss (leaving a 1.8mm solid blind base at the boss's
+    # FAR/cavity-facing end -- the same magnitude blind-base every
+    # other insert boss in this file leaves, just at the opposite end).
+    # SEAM_INSERT_X0 is a module-level constant (see its own definition,
+    # near SEAM_BOSS_LEN) -- reused as-is here, not re-derived.
+    _seam_clear_x0 = X_B0 - 2.0
+    _seam_clear_len = SEAM_INSERT_X0 - _seam_clear_x0
+    for sz in SEAM_BOLT_ZS:
+        wall_bore = cyl_x(CLEAR_D / 2.0, _seam_clear_len, _seam_clear_x0, y0 + 15.0, sz)
+        shell = shell.cut(wall_bore)
+        ins = cyl_x(INSERT_D / 2.0, INSERT_DEPTH, SEAM_INSERT_X0, y0 + 15.0, sz)
+        shell = shell.cut(ins)
     shell = shell.removeSplitter()
 
     # Perimeter mounts -- clearance through the back wall, matching 01b's
@@ -1867,6 +1943,18 @@ def build_back_shell_column():
     # (weakening face-plate clamping right where it matters) or
     # touching a fastener shared with 02a (a wider blast radius) for a
     # problem that is entirely local to 02b.
+    # NOTE for anyone re-deriving this: the two margins below are NOT
+    # interchangeable and don't both apply everywhere. _shank_r (FIT_
+    # CLEARANCE, 0.4mm radial) governs the relief's diameter for
+    # essentially the WHOLE 49.5mm travel -- it's the number that
+    # actually determines whether a straight M3 rod clears end to end.
+    # _head_r (FASTENER_DRIVER_CLEARANCE, 1.0mm radial) only widens the
+    # last CSK_DEPTH (2.6mm) of that travel, right at the back wall's
+    # own entry face -- it does not change the shank's own clearance
+    # anywhere else. A probe of "largest uniform clear diameter along
+    # the whole relieved axis" will read 2*_shank_r (4.2mm dia), not
+    # 2*_head_r, because the shank is the bottleneck over nearly the
+    # entire span.
     for (px, pz) in PERIM_B:
         _shank_r = CLEAR_D / 2.0 + FIT_CLEARANCE
         _head_r = CSK_D / 2.0 + FASTENER_DRIVER_CLEARANCE
@@ -1884,9 +1972,8 @@ def build_back_shell_column():
     # INSERT_WALL_MIN) must still read back 100% solid.
     for _sz in SEAM_BOLT_ZS:
         _prot_r = INSERT_D / 2.0 + INSERT_WALL_MIN
-        _ins_x0 = X_B0 + WALL + SEAM_BOSS_LEN - INSERT_DEPTH + 0.3
-        _protected = cyl_x(_prot_r, INSERT_DEPTH, _ins_x0, y0 + 15.0, _sz)
-        _ins_hole = cyl_x(INSERT_D / 2.0, INSERT_DEPTH, _ins_x0, y0 + 15.0, _sz)
+        _protected = cyl_x(_prot_r, INSERT_DEPTH, SEAM_INSERT_X0, y0 + 15.0, _sz)
+        _ins_hole = cyl_x(INSERT_D / 2.0, INSERT_DEPTH, SEAM_INSERT_X0, y0 + 15.0, _sz)
         _annulus_expected = _protected.cut(_ins_hole)
         _expected_vol = _annulus_expected.Volume
         _remaining = shell.common(_annulus_expected)
@@ -4370,8 +4457,10 @@ for (px, pz) in PERIM_B:
 # SEAM (02a/02b through-bolts, 4 bolts) -- no countersink modelled for
 # this fastener (head_depth=0.0, plain shank_r the whole travel); entry
 # at 02a's own cavity-side wall face, travel across the seam into 02b's
-# own seam boss, stopping right at that boss's own insert bore.
-_seam_travel = (X_B0 + WALL + SEAM_BOSS_LEN - INSERT_DEPTH + 0.3) - (X_A1 - WALL)
+# own seam boss, stopping right at SEAM_INSERT_X0 (build_back_shell_
+# column()'s own real insert position -- the NEAR end of the boss,
+# since round 2's fix).
+_seam_travel = SEAM_INSERT_X0 - (X_A1 - WALL)
 for _sz in SEAM_BOLT_ZS:
     _entry = Vector(X_A1 - WALL, FACE_T + 15.0, _sz)
     fastener_access(f"SEAM bolt Z={_sz:.2f} vs 02a-back-shell-screen",
@@ -4417,42 +4506,23 @@ for (bx, bz) in BAND_MOUNTS:
 # direction is a SMALLER struck volume, not a larger wall) -- a future
 # regression to something WORSE still hard-fails.
 #
-# Found running this check for the first time, NOT part of this
-# branch's own PERIM_B fix, NOT touched here: every one of the 4 SEAM
-# through-bolts (02a<->02b) reads ~43.6mm3 of real solid material
-# struck against 02b specifically (0.00mm3 against 02a). The seam
-# bolt's own clearance hole exists only in 02a's wall
-# (build_back_shell_screen()'s own "Seam -- clearance holes through
-# the RIGHT wall" cut); 02b's own matching LEFT wall (X_B0..X_B0+WALL)
-# has no clearance cut of its own at all -- only its seam boss, fused
-# onto the wall's inner face, and that boss's own insert bore doesn't
-# start until 1.8mm past the wall (see build_back_shell_column()'s own
-# "Seam -- BOSSES" block: ins starts at X_B0+WALL+SEAM_BOSS_LEN-
-# INSERT_DEPTH+0.3). A bolt entering from 02a's cavity side (the only
-# access the docstring's own "M3 through-bolts across the seam wall"
-# implies) would need to pass through 02b's own solid WALL(3mm) plus
-# ~1.8mm of the boss's own base before reaching the insert -- with no
-# real screw able to do that. This reads identically (43.58mm3, to 4
-# decimal places) at all four Z positions, which is itself the tell
-# that it's a structural gap in how the seam bolt's OWN two ends were
-# modelled (present regardless of Z), not a local collision with some
-# other nearby feature the way the PERIM_B/seam-rib defect was --
-# same DEFECT CLASS this check exists to catch, but a different,
-# pre-existing instance of it, already present on main before this
-# branch touched anything, and outside what this branch was asked to
-# fix (the fix here is a design call on the seam bolt's own intended
-# assembly sequence -- e.g. a matching clearance bore through 02b's
-# own wall, or accepting the bolt is driven from 02b's cavity side
-# instead -- not a call this branch makes unilaterally). Reported to
-# the coordinator, not silently patched.
-FASTENER_ACCESS_KNOWN_FINDINGS = {
-    "SEAM bolt": (43.6, (
-        "every SEAM through-bolt (02a<->02b) reads ~43.58mm3 struck against "
-        "02b specifically -- 02b's own LEFT wall has no clearance bore of its "
-        "own where 02a's does, a pre-existing gap in the seam bolt's own "
-        "modelled assembly path, not the PERIM_B defect this branch fixes; "
-        "not touched here, reported to the coordinator as its own item")),
-}
+# EMPTY this round, deliberately -- a first pass at this check found
+# every SEAM through-bolt reading ~43.6mm3 struck against 02b and
+# listed it here as a design-intent question for the coordinator. The
+# coordinator's own independent verification found it is NOT a design
+# question: it's a real access gap (02b's own wall had no clearance
+# bore where 02a's does) on top of a SEPARATE, worse defect this
+# branch had already missed (the seam insert's own bore reads 81.68 of
+# 81.68mm3 -- 100% -- SOLID on the finished part, at all four
+# positions; the round-5 support rib, fused AFTER the bore was cut in
+# the same loop, silently refilled it). Both are fixed for real now
+# (see build_back_shell_column()'s own "Seam -- BOSSES"/"Seam -- bolt
+# ACCESS" blocks and BORE-STAYS-OPEN below) -- an exemption entry is
+# for a condition that's genuinely accepted as-is, not a placeholder
+# for "found, not yet understood". Left as an empty dict, not deleted
+# outright, so the NEXT real known-but-unfixed finding has somewhere
+# to go without re-inventing this same pattern.
+FASTENER_ACCESS_KNOWN_FINDINGS = {}
 
 _fa_bad = []
 for _label, _vol, _max in FASTENER_ACCESS_RESULTS:
@@ -4471,6 +4541,63 @@ for _label, _vol, _max in FASTENER_ACCESS_RESULTS:
     if not _ok and not _known:
         _fa_bad.append((_label, _vol))
 assert not _fa_bad, f"{len(_fa_bad)} fastener(s) with an UNFLAGGED obstructed envelope: {_fa_bad}"
+
+
+# =============================================================================
+# NEW PERMANENT CHECK (fix/column-screw-access, round 2) -- BORE-STAYS-
+# OPEN. Added specifically because FASTENER-ACCESS above did NOT catch
+# the seam insert bore defect the coordinator found: that check
+# deliberately stops its own swept envelope short of the target boss/
+# insert (by design -- the intended contact there is supposed to exist
+# and shouldn't be flagged as a foul). Which means nothing in this
+# checklist -- not FASTENER-HOLE-EXISTS (a REFERENCE-OUTLINE probe, on
+# a deliberately unperforated stand-in, not the real finished part),
+# not FASTENER-ACCESS, not solid-count/isValid/shells -- ever asked
+# the one question that actually would have caught this: "on the REAL,
+# FINISHED, exported part, is the fastener's own TARGET bore still
+# open, or did some LATER fuse quietly refill it?" (round 5's own
+# support rib, fused AFTER the seam insert bore was cut in the SAME
+# loop iteration, did exactly that -- 81.68 of 81.68mm3, 100%, solid,
+# at all four seam positions, on commit 43b46e5's own real exported
+# STEP -- confirmed directly, not reasoned from the code, before this
+# fix landed).
+print("\n--- new permanent check: BORE-STAYS-OPEN (target insert bore, finished part) ---")
+
+BORE_OPEN_RESULTS = []
+
+
+def bore_stays_open(label, center, axis, radius, depth, part_shape, min_open_pct=95.0):
+    bore = Part.makeCylinder(radius, depth, center, axis)
+    full_vol = bore.Volume
+    remaining = part_shape.common(bore)
+    filled_vol = remaining.Volume if remaining.Solids else 0.0
+    open_pct = 100.0 * (full_vol - filled_vol) / full_vol
+    ok = open_pct >= min_open_pct
+    tag = "OK" if ok else "FAIL"
+    print(f"  [{tag}] BORE-STAYS-OPEN {label}: {open_pct:.1f}% open "
+          f"({filled_vol:.2f}mm3 of {full_vol:.2f}mm3 filled, need >={min_open_pct:.0f}% open)")
+    BORE_OPEN_RESULTS.append((label, open_pct, ok))
+
+
+for (px, pz) in PERIM_A:
+    bore_stays_open(f"PERIM_A boss/insert ({px:.2f},{pz:.2f})",
+                     Vector(px, FACE_T + PERIM_BOSS_LEN - INSERT_DEPTH + 0.3, pz), Vector(0, 1, 0),
+                     INSERT_D / 2.0, INSERT_DEPTH, fp_screen)
+for (px, pz) in PERIM_B:
+    bore_stays_open(f"PERIM_B boss/insert ({px:.2f},{pz:.2f})",
+                     Vector(px, FACE_T + PERIM_BOSS_LEN - INSERT_DEPTH + 0.3, pz), Vector(0, 1, 0),
+                     INSERT_D / 2.0, INSERT_DEPTH, fp_column)
+for (bx, bz) in BAND_MOUNTS:
+    bore_stays_open(f"BAND_MOUNT boss/insert ({bx:.2f},{bz:.2f})",
+                     Vector(bx, FACE_T + BAND_BOSS_LEN - INSERT_DEPTH + 0.3, bz), Vector(0, 1, 0),
+                     INSERT_D / 2.0, INSERT_DEPTH, fp_screen)
+for _sz in SEAM_BOLT_ZS:
+    bore_stays_open(f"SEAM boss/insert Z={_sz:.2f}",
+                     Vector(SEAM_INSERT_X0, FACE_T + 15.0, _sz), Vector(1, 0, 0),
+                     INSERT_D / 2.0, INSERT_DEPTH, bs_column)
+
+_bore_bad = [r for r in BORE_OPEN_RESULTS if not r[2]]
+assert not _bore_bad, f"{len(_bore_bad)} fastener bore(s) refilled/blocked on the finished part: {_bore_bad}"
 
 
 # =============================================================================
