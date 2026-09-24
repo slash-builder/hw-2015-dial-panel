@@ -179,6 +179,84 @@ seat in the pod, does the tab press into its pocket — are still open.
 None of these parts has changed since they were printed, so they will not need
 reprinting.
 
+## 2026-09-24 · plate 3 reprinted · Bambu Lab A1, 0.20 mm, matte black PLA
+
+### The column closes now — but three of four screws foul, and the seam had no holes
+
+The reprinted plate 3 **seats and closes correctly**, so the perimeter-boss
+fix worked. Fitting it then found the screws and screw bosses fouling the
+shell's internal structure. Two separate faults came out of that, one of them
+far more serious than the thing being reported.
+
+#### Fault 1 · three of four column screws run into the seam ribs
+
+Measured on the exported CAD, sweeping each screw axis through the shell:
+
+| Screw | On-axis obstruction |
+|---|---|
+| X 72.56, Z 18.00 | **49.50 mm of solid**, Y 12.50→62.00 |
+| X 72.56, Z 185.24 | **49.50 mm of solid**, same span |
+| X 146.76, Z 18.00 | clears the shank, fouls at head diameter |
+| X 146.76, Z 185.24 | clear |
+
+Three foul, one is clean — exactly what the builder reported.
+
+The obstruction is the **seam bosses and their support ribs** (X 65.00–77.00,
+Y 12.50–62.00). Those ribs were added in an earlier round to cure a slicer
+warning about a boss cantilevered in mid-air, and nothing re-checked them
+against the perimeter screws already sharing that space.
+
+**Why nothing caught it:** `01b` against `02b` measures **0.00 mm³ overlap,
+0.0000 mm minimum distance**. The two solids genuinely do not touch — the
+*fastener that passes between them* does. No check modelled the fastener.
+
+**Fixed** by relieving the screw's real swept envelope out of the seam
+material. No screw or seam-bolt position moved.
+
+#### Fault 2 · all four seam bolts had no hole at all
+
+Found while verifying the first fix. The shell contained **zero cylindrical
+features running along X** — no seam bore anywhere in the part. Probing each
+bolt position:
+
+```
+material inside the bore = 81.68 mm³ of 81.68 mm³   — completely filled, all four
+```
+
+A bolt would have met **12.25 mm of continuous solid**. As printed, **the
+column module could not be bolted to the screen module at all.**
+
+The cause was boolean ordering: the code cut the insert bore, then fused the
+support rib over the same region, filling it straight back in. The bore was
+cut correctly and then destroyed by a later operation.
+
+**Fixed** by restructuring the build so every fuse happens before every cut,
+which makes the ordering safe by construction rather than by getting it right
+once. The insert also moved to the boss's near face and a clearance bore now
+runs through the shell wall to reach it, so the bolt has a continuous path.
+Verified through both shells: bore 0.00 mm³ obstructed at all four positions,
+approach clear, with the expected 3 mm of blind material behind each insert.
+
+#### New checks, both proven to fail on the old geometry first
+
+- **fastener-access** — sweeps each fastener's real envelope (thin shank the
+  whole travel, widening to the countersink only at the entry) through every
+  part it should pass clear of. Covers all 20 fastener positions.
+- **bore-stays-open** — asserts on the *finished* part that each insert bore
+  is actually open. This is the one that catches a hole cut correctly and then
+  refilled by a later operation, which is invisible to every other check.
+
+That makes four fastener checks, and they are not redundant: one proves the
+hole exists, one proves there is material around it, one proves you can reach
+it, and one proves nothing filled it back in afterwards.
+
+#### Reprint
+
+**`02b` back shell, column (plate 3) only** — volume changed by −995.64 mm³.
+`01b` on the same plate is untouched, as is every other part in the build,
+verified part by part on volume and bounding box. All nine plates slice with
+no warnings.
+
 ## Where the build stands
 
 **All nine plates have now been printed at least once.** What is current and
@@ -188,7 +266,7 @@ what is stale:
 |---|---|---|
 | 1 | 01a face plate, screen | **reprint** — trim rebate + boss fix |
 | 2 | 02a back shell, screen | **reprint** — cable slot + boss fix |
-| 3 | 01b + 02b column | **reprint** — 02b changed (01b did not) |
+| 3 | 01b + 02b column | reprinted once; **02b needs a third print** — screw access + seam bores (01b is current) |
 | 4 | 08 cup, 11 cleat, 12 rail | current, fitting pending |
 | 5 | 03 trim ×2, 06 knob ×2 | current, printed after the fix |
 | 6 | 07 gold tab ×3 | current, fitting pending |
