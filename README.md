@@ -162,6 +162,23 @@ as a check. It needs FreeCAD and Bambu Studio installed.
 - **Unconfirmed part dimensions:** a few sizes come from listings and are marked in `cad/README.md`. They include the dial's shaft flat, the rocker's clip thickness and the speaker's depth. Measure your parts; each is a single parameter.
 - **LED brightness is capped at about 25%.** Full brightness would pull more current than the Pi's 5 V pins can supply.
 
+## Versions
+
+Every commit on `main` is tagged `vMAJOR.MINOR.PATCH` automatically, patch
+counting up. **A tag is a specific printable state of the hardware** — the
+CAD, the STLs, the slicer project and the docs as they were together — so if
+you print something, note the tag and you can always get back to exactly that
+geometry.
+
+This matters more here than in a software repo: a fix can change a part's
+dimensions, and a part printed from an older tag may no longer fit one printed
+from a newer one. [`docs/print-log.md`](docs/print-log.md) records which parts
+changed at each step and what needs reprinting.
+
+Patch bumps happen on their own. Minor and major are deliberate: push a tag
+like `v0.2.0` by hand when a release means something, and the automation picks
+up from there.
+
 ## Repository layout
 
 ```
