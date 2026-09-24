@@ -143,13 +143,32 @@ that printed clean above, so it is proven printable), and the cleat receiver
 rail is declared as touching the back shell but measures a deliberate 0.100 mm
 registration clearance.
 
+### Plate 5 · 03 screen trim ×2 + 06 knob ×2, silver silk PLA — printed clean
+Printed from `main` after the trim-rebate fix, and good. This is the first
+confirmation that dropping the rebate worked: the trim ring is now a flat
+part that sits proud on the face, with nothing printing over air.
+
+**Still unconfirmed on these parts**, so don't read this as a fit pass:
+
+- **The trim ring against 01a.** 01a has not been reprinted since the fix, so
+  the ring has not yet been offered up to the plate it screws to.
+- **The knob's D-bore against a real encoder.** `KNOB_BORE_FLAT = 4.6 mm` is
+  0.1 mm clearance over an **assumed** 4.5 mm shaft flat (`KY_SHAFT_FLAT_W`,
+  marked ASSUMED in the CAD — the 6.0 mm round diameter is verified, the flat
+  is not). If your encoder's flat is wider than 4.5 mm the knob will not seat;
+  if it is narrower the knob goes on but rotates on the flat until the radial
+  M3 set screw bites, which is recoverable.
+
+If you have the KY-040 in hand, **measure across the flat and report the
+number** — it is the last dimension in this build taken from a listing rather
+than a datasheet, and one measurement closes it for everyone.
+
 ## Still to print
-Plates 3–7, and re-prints of 1, 2, 5, and now 7, 8 and 9 from `main`. Worth
-checking on each:
+Plates 3, 4 and 6, re-prints of 1 and 2, and 7, 8 and 9 from `main`.
+**Plate 5 is done.** Worth checking on each:
 
 - **Plate 1:** is the window edge clean, and does the raised trim ring look right?
 - **Plate 2:** does the USB-C plug pass through the cable slot? Does the 10 mm LED strip seat fully in the band groove?
 - **Plate 3:** the engraved dial ticks, and whether the KY-040 bushing and the KCD1 rocker fit their openings (both unconfirmed dimensions from listings).
 - **Plate 4:** does the cleat hang flat, with the rail engaged?
-- **Plate 5:** does the knob's D-bore fit your encoder's shaft (the flat width is an assumed dimension)?
 - **Plate 7:** does the speaker sit in the pod, and does the diffuser clear the cone?
