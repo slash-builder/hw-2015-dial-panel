@@ -43,6 +43,11 @@ Plate 3 printed with minor stringing at the light opening on the bottom.
 Then **neither face plate would seat into its shell**: "the screw base bumps
 the edge of the body."
 
+**Printing plate 3 is how this was found**, and it condemned plates 1, 2 and 3
+together — the same boss geometry is wrong on the screen module and the column,
+so the parts already printed from plates 1 and 2 were stale the moment plate 3
+came off the bed.
+
 **Cause, measured in the CAD:** the face plates' perimeter screw bosses
 genuinely overlapped the shells' side walls — 448 mm³ on the screen module
 (6 bosses, 2 mm into each wall) and 527 mm³ on the column (4 bosses, two of
@@ -159,16 +164,50 @@ part that sits proud on the face, with nothing printing over air.
   if it is narrower the knob goes on but rotates on the flat until the radial
   M3 set screw bites, which is recoverable.
 
-If you have the KY-040 in hand, **measure across the flat and report the
-number** — it is the last dimension in this build taken from a listing rather
-than a datasheet, and one measurement closes it for everyone.
+The encoder had not arrived at the time of this print, so **the flat is still
+unmeasured**. If you have a KY-040 in hand before we do, measure across the
+flat and report the number — it is the last dimension in this build taken from
+a listing rather than a datasheet, and one measurement closes it for everyone.
 
-## Still to print
-Plates 3, 4 and 6, re-prints of 1 and 2, and 7, 8 and 9 from `main`.
-**Plate 5 is done.** Worth checking on each:
+### Plate 4 · 08 speaker cup + 11 wall cleat + 12 receiver rail — printed, looks right
+### Plate 6 · 07 gold tab ×3 — printed, looks right
+Both printed and correct on inspection. Neither has been **fitted** yet: the
+cup, cleat, rail and tab all mate with body parts that are mid-reprint, so the
+real checks — does the cleat hang flat with the rail engaged, does the speaker
+seat in the pod, does the tab press into its pocket — are still open.
+
+None of these parts has changed since they were printed, so they will not need
+reprinting.
+
+## Where the build stands
+
+**All nine plates have now been printed at least once.** What is current and
+what is stale:
+
+| Plate | Parts | State |
+|---|---|---|
+| 1 | 01a face plate, screen | **reprint** — trim rebate + boss fix |
+| 2 | 02a back shell, screen | **reprint** — cable slot + boss fix |
+| 3 | 01b + 02b column | **reprint** — 02b changed (01b did not) |
+| 4 | 08 cup, 11 cleat, 12 rail | current, fitting pending |
+| 5 | 03 trim ×2, 06 knob ×2 | current, printed after the fix |
+| 6 | 07 gold tab ×3 | current, fitting pending |
+| 7 | 05 band diffuser | **reprint** — new mounting geometry |
+| 8 | 04a IGNITION insert | **reprint** — new mounting geometry |
+| 9 | 04b NIGHTFALL insert | **reprint** — new mounting geometry |
+
+Six plates to re-run, three good. **A full fitting is deliberately deferred
+until the body parts are reprinted** — most of the remaining unknowns are
+fits between a body part and something that bolts to it, and there is no
+point testing those against superseded geometry.
+
+Still worth checking as they come off:
 
 - **Plate 1:** is the window edge clean, and does the raised trim ring look right?
 - **Plate 2:** does the USB-C plug pass through the cable slot? Does the 10 mm LED strip seat fully in the band groove?
 - **Plate 3:** the engraved dial ticks, and whether the KY-040 bushing and the KCD1 rocker fit their openings (both unconfirmed dimensions from listings).
 - **Plate 4:** does the cleat hang flat, with the rail engaged?
 - **Plate 7:** does the speaker sit in the pod, and does the diffuser clear the cone?
+- **Plates 7–9 together:** do the insert and diffuser now actually bolt to the
+  four bosses, flush, with the screws reaching? That is the whole point of the
+  last fix and it is the one thing no check can settle.
