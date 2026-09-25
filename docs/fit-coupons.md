@@ -3,7 +3,7 @@
 Three small test pieces, cut straight out of the real printed parts, so you
 can check the fits that have actually gone wrong on this build **without**
 printing the full plates 1, 2 and 3 (10 h 36 m combined on a Bambu Lab A1).
-Print `bambu/dial-panel-coupons.3mf` instead — two plates, about 1 h 20 m
+Print `bambu/dial-panel-coupons.3mf` instead — two plates, about 1 h 25 m
 total — before you commit a full print run to a body part you haven't
 fitted yet.
 
@@ -27,8 +27,8 @@ question these coupons exist to answer.
 A coupon fixes this by staying at 1:1 and being cut, not redrawn, from the
 exact STEP files that ship in `cad/step/` — the same geometry that goes to
 the real plates. If a coupon fits, the real part fits that spot. If a
-coupon doesn't, the real part won't either, and you've found out in
-80 minutes instead of 10+ hours.
+coupon doesn't, the real part won't either, and you've found out in about
+85 minutes instead of 10+ hours.
 
 ## What "cut from the real part" means
 
@@ -134,10 +134,32 @@ diffuser needs another CAD pass before reprinting them.
 
 Every coupon has a small debossed label (`A1`, `B2`, `C3`, ...) cut into
 one flat side, so pieces can't get mixed up on the bench once there are
-eight of them loose in a box. The label is always on a face the box-cut
-itself created, well away from the screw hole, boss, or bore the coupon
-exists to test, and away from the face that sits on the print bed — it's
-there to identify the piece, not to be felt or seen in the fit test itself.
+eight of them loose in a box. The label sits on whichever face of that
+specific coupon is genuinely both (a) large enough for the text and (b)
+solid all the way through the label's own 0.6mm cut depth, confirmed by
+probing the real geometry, not assumed from a bounding box — for most
+coupons that's the part's own broad flat front/back face; for the two seam
+coupons (B1, B3) and one shell corner (A2), whose seam/corner cross-section
+turns out to be a thin shell rather than a solid block once you look past
+the surface, it's the coupon's own reinforced seam-post end instead. Every
+label placement is checked away from the screw hole, boss, bore, or
+mounting-hole pattern the coupon exists to test, and away from the face
+that sits on the print bed.
+
+**Text size is derived, not guessed**, from this build's own font: v0.1.2
+shipped labels at 1.6mm (1.0mm for C2/C3) cap height, which produced real
+STEP geometry (confirmed by the extra face counts in the export) but
+strokes only 0.006–0.176mm wide — far under the printer's 0.4mm nozzle, so
+the slicer silently dropped every one of them and the builder saw blank
+parts. The fix measures this font's actual stroke-to-cap-height ratio and
+sizes every label (11.5mm cap height as of this fix) so its thinnest
+stroke clears 0.8mm (two nozzle widths) with margin — checked by
+regenerating the exported gcode and confirming real extrusion moves trace
+each letter at the label's own depth, not just checking the CAD geometry
+in isolation. C2's own broad face turned out to be perforated by its
+LED/wiring holes densely enough that no full 2-character block fits
+without touching one; per this build's own "use a shorter label, never
+shrink below the printable floor" rule, C2 is labelled `2` instead of `C2`.
 
 ## Filament and plates
 
@@ -154,9 +176,11 @@ Every coupon keeps its parent part's own print orientation (from
 parts use, so a coupon's overhangs and first layer are the same test as the
 real print, not a different one.
 
-Measured: **1 h 20 m** total for both coupon plates, against **10 h 36 m**
-for plates 1 + 2 + 3 — about 8x faster to find out whether a fix actually
-worked.
+Measured: **1 h 25 m** total for both coupon plates (up from 1 h 20 m before
+the label fix — the bigger, now-actually-printable debossed labels add a
+few minutes of extra travel/perimeter time), against **10 h 36 m** for
+plates 1 + 2 + 3 — still about 7.5x faster to find out whether a fix
+actually worked.
 
 ## If a coupon fails
 

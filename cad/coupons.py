@@ -49,6 +49,18 @@ for _d in (OUT_STEP, OUT_STL):
 
 FONT_FILE = "/System/Library/Fonts/Supplemental/Arial.ttf"
 
+# =============================================================================
+# Printability constants (2026-09-24 fix) -- the labels shipped in v0.1.2
+# existed in the STEP file (extra face counts +15/+33/+14 on A1/B1/C2 --
+# real, valid geometry) but their strokes were 0.006-0.176mm wide, far
+# below the printer's minimum feature size, so the slicer silently
+# discarded every one of them. "A feature that exists in CAD but is below
+# the process's minimum feature size is not a feature." See the Labelling
+# section below for the fix.
+# =============================================================================
+NOZZLE_W = 0.4                    # mm -- Bambu Lab A1 0.4mm nozzle (bambu/build_coupons_project.py PRINTER)
+MIN_STROKE_MM = 2 * NOZZLE_W      # 0.8mm -- "two extrusion widths," the fix brief's own printable floor
+
 doc = App.newDocument("DialPanelCoupons")
 App.ParamGet("User parameter:BaseApp/Preferences/Mod/Mesh").SetBool("AsciiSTL", False)
 
@@ -272,32 +284,159 @@ def pick_nearest_boss(shape, approx_x, approx_z, axis="Y", min_len=3.0):
 
 # =============================================================================
 # Labelling -- a small debossed tag ("A1", "B2", ...) so bench pieces
-# can't be mixed up. Cut into a face this script itself creates by the
-# box intersection at one of the box's own X boundaries (never an
-# original mating or bed-contact face): every coupon in this file is cut
-# from a part whose own print rotation (cad/print_rotations.json) is
-# about the X axis only, so an X-normal face's normal is preserved by
-# that rotation -- it can never become the bed-contact face (which is
-# always a rotated Y- or Z-normal face) in any coupon here, and the two
-# X-bounding faces of the box are chosen, per coupon below, to sit away
-# from the seam/nesting interface the coupon actually mates through.
+# can't be mixed up.
+#
+# 2026-09-24 FIX (see docs/fit-coupons.md and the module docstring's own
+# NOZZLE_W/MIN_STROKE_MM note): the prior version of this section put every
+# label on a narrow X-normal edge at size=1.6mm (1.0mm for C2/C3). The text
+# was real, valid geometry, but the strokes it produced (measured on the
+# printed parts: 0.006-0.176mm) were far under the 0.4mm nozzle's minimum
+# feature size, so the slicer silently dropped every one of them.
+#
+# Two independent, PERMANENT fixes (both re-run on every regeneration, not
+# one-off patches):
+#
+#   1. Every label now goes on the coupon's own LARGEST available flat
+#      face, not a narrow edge -- see the per-coupon comments at each call
+#      site (COUPON A/B/C sections below) for which face that is and why
+#      it's safe: never the bed-contact face (checked against each part's
+#      real cad/print_rotations.json entry), never a precision fastener/
+#      boss/seam surface (the anchor is always the footprint corner
+#      farthest from the feature the coupon exists to test).
+#
+#   2. LABEL_SIZE_MM (below) is DERIVED from this font's own real,
+#      measured stroke-to-cap-height ratio -- not assumed from "6mm sounds
+#      about right" -- and min_stroke_width_mm() re-measures the REAL
+#      geometry of every label actually cut, with a permanent assertion
+#      (in _finish_label) that fails the build if any label's thinnest
+#      stroke is under MIN_STROKE_MM. Confirmed this assertion actually
+#      fires on the old, broken sizes (1.6mm/1.0mm) before trusting it --
+#      see this fix's own hand-back notes for that reproduction; the
+#      broken sizes are deliberately not left runnable in this file so
+#      `main` can never regress to shipping them by accident.
 # =============================================================================
-def make_label_tool(text, size, x0, y_anchor, z_anchor, depth=0.6, air=0.6, into_positive_x=True):
-    """A small solid that, when CUT from a coupon, engraves `text` into
-    the X-normal face at world X=x0. Built in the shapestring's own local
-    frame (baseline along local X, cap-height along local Y, flat at
-    local Z=0) then rotated 120deg about (1,1,1) -- confirmed directly
-    (see cad/coupons.py's own dev notes) to map local X->world Y,
-    local Y->world Z, local Z->world X, i.e. exactly "text reads along
-    the wall's depth axis, extrudes along the wall's normal" -- then
-    translated so the extrusion straddles the real face with a genuine
-    overlap on both sides (never a zero-overlap Gotcha #1 coincident
-    cut)."""
+def _shapestring_face(text, size, tracking=0.0):
+    """Build ONLY the flat 2D face for `text` at `size` (no extrusion, no
+    placement) -- the single source geometry shared by min_stroke_width_mm
+    (measurement) and make_label_tool_x/_y (the actual cutting tool), so
+    what gets measured is always exactly what gets cut."""
     import Draft
-    ss = Draft.make_shapestring(String=text, FontFile=FONT_FILE, Size=size, Tracking=0)
+    ss = Draft.make_shapestring(String=text, FontFile=FONT_FILE, Size=size, Tracking=tracking)
     doc.recompute()
-    wires = ss.Shape.Wires
-    face = Part.makeFace(wires, "Part::FaceMakerBullseye")
+    face = Part.makeFace(ss.Shape.Wires, "Part::FaceMakerBullseye")
+    doc.removeObject(ss.Name)
+    return face
+
+
+def min_stroke_width_mm(face, grid=0.1):
+    """Real minimum printable stroke width of a flat text face, MEASURED
+    off the geometry -- not estimated from font metrics.
+
+    Method: grid-sample the face's own bounding box; for every sample
+    point that lies inside the face, compute its distance to the face's
+    own boundary edges (Part.Vertex.distToShape). A point is a "ridge"
+    point if its distance is >= every inside neighbour's in its 3x3
+    window -- i.e. it sits at or near a stroke's local centreline, not
+    partway down its wall. Twice the smallest ridge distance found is this
+    face's thinnest stroke; twice the median is reported alongside it for
+    the same reason the field report that caught this defect gave both
+    numbers (a single worst-case figure can be a corner artifact; the
+    median shows whether the whole label is thin or just one spot is).
+
+    Why not FreeCAD's own Part.Face.makeOffset2D (the obvious "erode by
+    half the threshold, see if it survives" approach): confirmed live on
+    this exact font -- ANY shapestring face containing the glyph "B" (at
+    any size or tracking tested, including a lone "B") makes
+    makeOffset2D hard-crash the freecadcmd process (SIGSEGV, no Python
+    exception raised to catch) instead of erroring gracefully. That's a
+    real, reproducible FreeCAD/OCCT robustness gap in 2D-offsetting
+    Part::FaceMakerBullseye output for multiply-wound glyphs, not a defect
+    in this build's own geometry -- but half of this file's coupon labels
+    start with "B", so that approach was not usable here and is flagged
+    separately rather than fixed quietly (see this fix's hand-back notes).
+    This grid/ridge method never crashes on any label text in this file,
+    at the cost of being a coarser estimate: true to its own grid spacing,
+    and deliberately conservative (a stroke narrower than one grid cell,
+    or a tie among ridge neighbours, reads as thinner than or equal to the
+    real geometry, never thicker)."""
+    bb = face.BoundBox
+    edges = Part.Compound(face.Edges)
+    nx = max(2, int(bb.XLength / grid) + 1)
+    ny = max(2, int(bb.YLength / grid) + 1)
+    dx = bb.XLength / (nx - 1) if nx > 1 else grid
+    dy = bb.YLength / (ny - 1) if ny > 1 else grid
+    dist = [[None] * ny for _ in range(nx)]
+    for i in range(nx):
+        x = bb.XMin + i * dx
+        for j in range(ny):
+            y = bb.YMin + j * dy
+            pt = Vector(x, y, 0)
+            if face.isInside(pt, 1e-7, True):
+                dist[i][j] = Part.Vertex(pt).distToShape(edges)[0]
+    ridge = []
+    for i in range(nx):
+        for j in range(ny):
+            d = dist[i][j]
+            if d is None:
+                continue
+            is_ridge = True
+            for di in (-1, 0, 1):
+                for dj in (-1, 0, 1):
+                    if di == 0 and dj == 0:
+                        continue
+                    ni, nj = i + di, j + dj
+                    if 0 <= ni < nx and 0 <= nj < ny and dist[ni][nj] is not None:
+                        if dist[ni][nj] > d:
+                            is_ridge = False
+                            break
+                if not is_ridge:
+                    break
+            if is_ridge:
+                ridge.append(d)
+    if not ridge:
+        return 0.0, 0.0
+    ridge.sort()
+    return 2 * ridge[0], 2 * ridge[len(ridge) // 2]
+
+
+# LABEL_SIZE_MM -- derived, not assumed. Measure this exact font's own
+# stroke-to-cap-height ratio at a size well clear of any tiny-glyph
+# measurement noise, for every label text this file actually uses, take
+# the worst (thinnest-relative-to-size) one, and scale up to clear
+# MIN_STROKE_MM with a real margin.
+LABEL_TEXTS = ["A1", "A2", "B1", "B2", "B3", "C1", "C2", "C3"]
+_REF_SIZE_MM = 6.0
+_worst_text, _worst_ratio = None, None
+for _t in LABEL_TEXTS:
+    _thinnest_ref, _ = min_stroke_width_mm(_shapestring_face(_t, _REF_SIZE_MM), grid=0.1)
+    _ratio = _thinnest_ref / _REF_SIZE_MM
+    print(f"  stroke calibration '{_t}' @ {_REF_SIZE_MM:.1f}mm: thinnest={_thinnest_ref:.4f}mm "
+          f"ratio={_ratio:.4f}")
+    if _worst_ratio is None or _ratio < _worst_ratio:
+        _worst_text, _worst_ratio = _t, _ratio
+assert _worst_ratio and _worst_ratio > 0, "stroke-width calibration found a zero-width label at the reference size"
+_SAFETY_MARGIN = 1.2   # covers this grid method's own discretisation noise + real print variance
+_raw_required_mm = MIN_STROKE_MM / _worst_ratio
+LABEL_SIZE_MM = math.ceil(_raw_required_mm * _SAFETY_MARGIN * 2.0) / 2.0   # round up to the nearest 0.5mm
+print(f"label size derivation: worst stroke/size ratio is '{_worst_text}' at {_worst_ratio:.4f} "
+      f"(measured at {_REF_SIZE_MM:.1f}mm cap height) -> raw required size "
+      f"{MIN_STROKE_MM:.2f}/{_worst_ratio:.4f}={_raw_required_mm:.2f}mm -> "
+      f"LABEL_SIZE_MM={LABEL_SIZE_MM:.1f}mm ({_SAFETY_MARGIN:.0%} margin) for a {MIN_STROKE_MM:.2f}mm "
+      f"minimum stroke (2x the {NOZZLE_W}mm nozzle)")
+
+
+def make_label_tool_x(text, size, x0, y_anchor, z_anchor, depth=0.6, air=0.6, into_positive_x=True):
+    """A small solid that, when CUT from a coupon, engraves `text` into
+    the X-normal face at world X=x0 -- used only for the B1/B3 seam-strip
+    coupons (see their call sites for why an X-normal box-cut face is
+    genuinely their largest available flat face). Built in the
+    shapestring's own local frame then rotated 120deg about (1,1,1) --
+    confirmed directly to map local X->world Y, local Y->world Z,
+    local Z->world X, i.e. "text reads along the wall's depth axis,
+    extrudes along the wall's normal" -- then placed so the extrusion
+    straddles the real face with a genuine overlap on both sides (never a
+    zero-overlap Gotcha #1 coincident cut)."""
+    face = _shapestring_face(text, size)
     total = depth + air
     solid = face.extrude(Vector(0, 0, total))
     R = Rotation(Vector(1, 1, 1), 120)
@@ -309,51 +448,225 @@ def make_label_tool(text, size, x0, y_anchor, z_anchor, depth=0.6, air=0.6, into
         # material is at X > x0 (an xmin-side cut face) -- mirror it.
         origin = Vector(x0 - air, y_anchor, z_anchor)
     solid.Placement = Placement(origin, R)
-    doc.removeObject(ss.Name)
     return solid
 
 
-def label_footprint(coupon, x0, margin=1.0):
-    """Real (Y,Z) extent of `coupon`'s own material right at world
-    X=x0, found by actually slicing it there -- not assumed from the
-    nominal box -- so label placement is always checked against the
-    real geometry it's about to be cut into."""
-    probe = Part.makeBox(0.2, 400, 400, Vector(x0 - 0.1, -200, -200))
+def make_label_tool_y(text, size, y0, x_anchor, z_anchor, depth=0.6, air=0.6, into_positive_y=True):
+    """A small solid that, when CUT from a coupon, engraves `text` into
+    the Y-normal face at world Y=y0 -- the coupon's own broad flat front/
+    back face, used for every coupon in this file except B1/B3. Built in
+    the shapestring's own local frame (baseline along local X, cap-height
+    along local Y, flat at local Z=0) then rotated +90deg about world X --
+    confirmed directly (FreeCAD Rotation(Vector(1,0,0),90) maps local
+    X->world X, local Y->world Z, local Z->world -Y) to give upright text
+    (cap height along world Z, matching the panel's own up/down) extruding
+    along the part's own thickness axis (world Y). `into_positive_y`
+    selects which side of y0 carries real material and flips the LOCAL
+    extrusion direction (never the rotation, which always keeps text
+    upright) so the cut digs into that material with a genuine overlap on
+    both sides (never a zero-overlap Gotcha #1 coincident cut)."""
+    face = _shapestring_face(text, size)
+    total = depth + air
+    R = Rotation(Vector(1, 0, 0), 90)
+    if into_positive_y:
+        # material is at Y > y0 -- local -Z maps to +Y, so extrude that
+        # way: start `air` below y0 in open air, end `depth` inside material.
+        solid = face.extrude(Vector(0, 0, -total))
+        origin = Vector(x_anchor, y0 - air, z_anchor)
+    else:
+        # material is at Y < y0 -- local +Z maps to -Y: start `air` above
+        # y0 in open air, end `depth` inside material.
+        solid = face.extrude(Vector(0, 0, total))
+        origin = Vector(x_anchor, y0 + air, z_anchor)
+    solid.Placement = Placement(origin, R)
+    return solid
+
+
+def _material_slab_x(coupon, x0, depth, into_positive_x):
+    """The coupon's real material across the FULL depth a label at X=x0
+    will actually cut -- not just a thin skin at x0 itself. Checking only
+    the surface is exactly what let the first pass of this fix place a
+    label over material that looked solid at the surface but was hollow
+    one layer behind it (see _finish_label's own real-material check and
+    this fix's hand-back notes for the case that caught it)."""
+    origin_x = (x0 - depth) if into_positive_x else x0
+    probe = Part.makeBox(depth, 400, 400, Vector(origin_x, -200, -200))
     sl = coupon.common(probe)
-    if not sl.Solids:
-        return None
-    bb = sl.BoundBox
-    return (bb.YMin + margin, bb.YMax - margin, bb.ZMin + margin, bb.ZMax - margin)
+    return sl if sl.Solids else None
 
 
-def add_label(coupon, text, x0, feature_yz, into_positive_x, size=1.6):
-    """Cut `text` into the coupon at world X=x0, anchored at whichever
-    corner of the real local footprint is farthest from feature_yz
-    (the mating feature this coupon exists to test), so the label is
-    never on or near a functional surface. Re-verifies solid count /
-    validity / shell count immediately after, per this build's own
-    "verify after every operation, not just at the end" rule."""
-    fy, fz = feature_yz
-    foot = label_footprint(coupon, x0)
-    assert foot is not None, f"{text}: no material found at the chosen label plane X={x0}"
-    y0, y1, z0, z1 = foot
-    corners = [(y0, z0), (y0, z1), (y1, z0), (y1, z1)]
-    ay, az = max(corners, key=lambda p: math.hypot(p[0] - fy, p[1] - fz))
-    # nudge the anchor slightly toward the footprint's own centre so the
-    # text (width along Y, height along Z here) starts inside real
-    # material rather than exactly on its edge.
-    ay += 0.6 if ay < (y0 + y1) / 2.0 else -0.6 - size * len(text) * 0.7
-    az += 0.6 if az < (z0 + z1) / 2.0 else -0.6 - size * 1.4
-    tool = make_label_tool(text, size, x0, ay, az, into_positive_x=into_positive_x)
+def _material_slab_y(coupon, y0, depth, into_positive_y):
+    """Y-normal counterpart of _material_slab_x."""
+    origin_y = y0 if into_positive_y else (y0 - depth)
+    probe = Part.makeBox(400, depth, 400, Vector(-200, origin_y, -200))
+    sl = coupon.common(probe)
+    return sl if sl.Solids else None
+
+
+def _slab_coverage_x(slab, y0, y1, z0, z1):
+    bb = slab.BoundBox
+    test = Part.makeBox(bb.XLength, y1 - y0, z1 - z0, Vector(bb.XMin, y0, z0))
+    common = slab.common(test)
+    vol = common.Volume if common.Solids else 0.0
+    return vol / test.Volume
+
+
+def _slab_coverage_y(slab, x0, x1, z0, z1):
+    bb = slab.BoundBox
+    test = Part.makeBox(x1 - x0, bb.YLength, z1 - z0, Vector(x0, bb.YMin, z0))
+    common = slab.common(test)
+    vol = common.Volume if common.Solids else 0.0
+    return vol / test.Volume
+
+
+LABEL_ANCHOR_PAD = 0.6   # mm clearance kept between the text block and the real material's own edge
+
+
+def _find_label_anchor(slab, coverage_fn, amin, amax, bmin, bmax, block_w, block_h,
+                        feature_a, feature_b, step=1.5, min_coverage=0.92):
+    """Search the coupon's REAL material (`slab`, already spanning the
+    label's full cut depth -- see _material_slab_x/_y) for a block_w x
+    block_h rectangle that is >= min_coverage real material, preferring
+    whichever qualifying position is farthest from (feature_a, feature_b)
+    -- the functional feature this coupon exists to test.
+
+    Replaces the original "just use the bounding-box corner farthest from
+    the feature" heuristic, which assumed the real cross-section fills
+    its own bounding box. Confirmed false on two coupons in this exact
+    fix (A2's Y-normal face, and separately its own X-normal end face;
+    B1's X-normal end face): each has real material concentrated in one
+    narrow region of an otherwise much bigger bounding box, so a
+    bbox-corner guess landed in open air / a thin skin on the first pass
+    of this fix and cut 0.0-9mm3 of an expected ~40-45mm3.
+
+    Returns (a, b, coverage, distance) for the chosen rectangle's own
+    (amin,bmin) corner, or None if nothing in the search grid clears
+    min_coverage -- callers must treat None as "this face has no room for
+    this label at this size" per the fix brief's own instruction, not
+    silently place unprintable or half-missing text."""
+    candidates = []
+    a = amin
+    while a + block_w <= amax + 1e-9:
+        b = bmin
+        while b + block_h <= bmax + 1e-9:
+            d = math.hypot((a + block_w / 2.0) - feature_a, (b + block_h / 2.0) - feature_b)
+            candidates.append((d, a, b))
+            b += step
+        a += step
+    candidates.sort(key=lambda c: -c[0])   # farthest from the feature first
+    for d, a, b in candidates:
+        cov = coverage_fn(a, a + block_w, b, b + block_h)
+        if cov >= min_coverage:
+            return a, b, cov, d
+    return None
+
+
+def _finish_label(coupon, text, tool, size, depth=0.6):
+    """Shared tail end of add_label_x/_y: the PERMANENT stroke-width
+    assertion (must run on every label, every regeneration -- this is the
+    check that would have caught the original defect), a PERMANENT
+    real-material check (see below), then the existing solid-count/
+    validity/shell-count re-verification this build already requires
+    after every operation that's supposed to preserve one body.
+
+    The real-material check exists because of a second, independent way
+    this exact fix broke A2 on its first pass: label_footprint_y found a
+    genuinely large (X,Z) bounding rectangle at Y=WALL, but that rectangle
+    described the SLICE'S bounding box, not its true (non-rectangular)
+    shape -- the anchor corner it picked sat over a spot where the shell's
+    real material is only a thin skin that has already thinned to nothing
+    by the label's own cut depth. The cut still "succeeded" (solids=1,
+    valid=True, shells=[1] -- cutting empty air breaks nothing) and the
+    abstract 2D glyph face still passed the stroke-width check (that check
+    never looks at the coupon at all) -- but it removed 0.0mm3, i.e. no
+    label was actually cut. Comparing the REAL volume removed against the
+    tool's own nominal footprint (glyph area x depth) catches this the
+    same way the stroke-width check catches undersized text: by measuring
+    the real geometry, not trusting that a clean topology means the label
+    is actually there."""
+    thinnest, median = min_stroke_width_mm(_shapestring_face(text, size))
+    print(f"  label '{text}' @ {size:.1f}mm cap height -- stroke thinnest={thinnest:.3f}mm "
+          f"median={median:.3f}mm (need >= {MIN_STROKE_MM:.2f}mm)")
+    assert thinnest >= MIN_STROKE_MM, (
+        f"{text}: label stroke {thinnest:.3f}mm is narrower than {MIN_STROKE_MM:.2f}mm "
+        f"(2x the {NOZZLE_W}mm nozzle) -- the slicer will not extrude this (this is exactly the "
+        f"coupon-labels defect: real, valid CAD geometry below the process's minimum feature size)")
+    before_vol = coupon.Volume
     labelled = coupon.cut(tool)
+    removed = before_vol - labelled.Volume
+    expected = _shapestring_face(text, size).Area * depth
     n = len(labelled.Solids)
     valid = labelled.isValid()
     shells = [len(s.Shells) for s in labelled.Solids]
-    print(f"  label '{text}' at X={x0:.2f} anchor=({ay:.2f},{az:.2f}) -- "
+    print(f"    -> removed {removed:.2f}mm3 (nominal glyph-area x depth = {expected:.2f}mm3) "
           f"solids={n} valid={valid} shells={shells}")
+    assert removed >= 0.5 * expected, (
+        f"{text}: label cut removed only {removed:.2f}mm3 of an expected ~{expected:.2f}mm3 -- "
+        f"the anchor point is sitting over a thin skin or open cavity, not the coupon's real "
+        f"material, so most or all of the label was never actually cut")
     assert n == 1 and valid and shells == [1], (
         f"{text}: labelling broke the coupon's own topology (solids={n} valid={valid} shells={shells})")
     return labelled
+
+
+def add_label_x(coupon, text, x0, feature_yz, into_positive_x, size=None, depth=0.6, air=0.6):
+    """Cut `text` into the coupon's X-normal end face at world X=x0 --
+    B1/B3 only, see their call site for why. Searches the coupon's REAL
+    material across the label's full cut depth (_material_slab_x /
+    _find_label_anchor) for a spot big enough for the whole text block,
+    farthest from feature_yz (the mating feature this coupon exists to
+    test) among the spots that qualify -- never a bare bounding-box
+    corner (see _find_label_anchor's own docstring for why that broke)."""
+    size = LABEL_SIZE_MM if size is None else size
+    fy, fz = feature_yz
+    face = _shapestring_face(text, size)
+    block_w = face.BoundBox.XLength + 2 * LABEL_ANCHOR_PAD
+    block_h = face.BoundBox.YLength + 2 * LABEL_ANCHOR_PAD
+    slab = _material_slab_x(coupon, x0, depth, into_positive_x)
+    assert slab is not None, f"{text}: no material found at the chosen label plane X={x0}"
+    bb = slab.BoundBox
+    found = _find_label_anchor(slab, lambda a0, a1, b0, b1: _slab_coverage_x(slab, a0, a1, b0, b1),
+                                bb.YMin, bb.YMax, bb.ZMin, bb.ZMax, block_w, block_h, fy, fz)
+    assert found is not None, (
+        f"{text}: no {block_w:.1f}x{block_h:.1f}mm spot on this face is >=92% real material at "
+        f"X={x0} -- this coupon has no room for a {size:.1f}mm label here; use a shorter label "
+        f"(a single character) instead of shrinking below MIN_STROKE_MM")
+    ay, az, cov, dist = found
+    print(f"  anchor '{text}' (X-normal @ X={x0:.2f}): ({ay:.2f},{az:.2f}) coverage={cov:.1%} "
+          f"dist-from-feature={dist:.1f}mm")
+    tool = make_label_tool_x(text, size, x0, ay + LABEL_ANCHOR_PAD, az + LABEL_ANCHOR_PAD,
+                              depth=depth, air=air, into_positive_x=into_positive_x)
+    return _finish_label(coupon, text, tool, size, depth=depth)
+
+
+def add_label_y(coupon, text, y0, feature_xz, into_positive_y, size=None, depth=0.6, air=0.6):
+    """Cut `text` into the coupon's own broad flat face at world Y=y0 --
+    every coupon except B1/B3. Searches the coupon's REAL material across
+    the label's full cut depth (_material_slab_y / _find_label_anchor) for
+    a spot big enough for the whole text block, farthest from feature_xz
+    (the mating feature this coupon exists to test) among the spots that
+    qualify -- never a bare bounding-box corner (see _find_label_anchor's
+    own docstring for why that broke)."""
+    size = LABEL_SIZE_MM if size is None else size
+    fx, fz = feature_xz
+    face = _shapestring_face(text, size)
+    block_w = face.BoundBox.XLength + 2 * LABEL_ANCHOR_PAD
+    block_h = face.BoundBox.YLength + 2 * LABEL_ANCHOR_PAD
+    slab = _material_slab_y(coupon, y0, depth, into_positive_y)
+    assert slab is not None, f"{text}: no material found at the chosen label plane Y={y0}"
+    bb = slab.BoundBox
+    found = _find_label_anchor(slab, lambda a0, a1, b0, b1: _slab_coverage_y(slab, a0, a1, b0, b1),
+                                bb.XMin, bb.XMax, bb.ZMin, bb.ZMax, block_w, block_h, fx, fz)
+    assert found is not None, (
+        f"{text}: no {block_w:.1f}x{block_h:.1f}mm spot on this face is >=92% real material at "
+        f"Y={y0} -- this coupon has no room for a {size:.1f}mm label here; use a shorter label "
+        f"(a single character) instead of shrinking below MIN_STROKE_MM")
+    ax, az, cov, dist = found
+    print(f"  anchor '{text}' (Y-normal @ Y={y0:.2f}): ({ax:.2f},{az:.2f}) coverage={cov:.1%} "
+          f"dist-from-feature={dist:.1f}mm")
+    tool = make_label_tool_y(text, size, y0, ax + LABEL_ANCHOR_PAD, az + LABEL_ANCHOR_PAD,
+                              depth=depth, air=air, into_positive_y=into_positive_y)
+    return _finish_label(coupon, text, tool, size, depth=depth)
 
 
 def verify_coupon(shape, name, expect_solids=1):
@@ -424,9 +737,26 @@ a2 = bs_screen.common(A_BOX)
 verify_coupon(a1, "A1 (01a corner, pre-label)")
 verify_coupon(a2, "A2 (02a corner, pre-label)")
 
-A_LABEL_X = A_BX - 22.5 + 0.02   # the box's own real (unclipped) X0 cut plane
-a1 = add_label(a1, "A1", A_LABEL_X, (5.0, A_BZ), into_positive_x=True)
-a2 = add_label(a2, "A2", A_LABEL_X, (5.0, A_BZ), into_positive_x=True)
+# 2026-09-24 label fix: A1 moves to its own broad flat back face (01a,
+# Y=FACE_T -- probed real footprint at this corner: ~28x35mm, plenty of
+# room clear of the boss, and not the bed-contact face since 01a prints
+# front-face down (Y=0), so Y=FACE_T ends up facing up in open air).
+#
+# A2 is a genuinely thin shell (a watertight single solid, but hollow
+# inside its own bounding box, not a filled block) -- neither its Y=WALL
+# face nor its own box-cut end face at the box's LEFT edge (X~34.7, the
+# old A_LABEL_X) turned out to be broad AND full-depth solid: both
+# measured well under 20% real material across the label's own 0.6mm cut
+# depth (confirmed by _find_label_anchor finding no qualifying spot, and
+# by direct probing across the whole coupon -- see this fix's hand-back
+# notes). Scanning multiple X-planes found the one place on this coupon
+# that actually is: right at its own real X_MAX edge (X_A1=64.66, the
+# screen/column seam post), which measured >99% solid across the full
+# label depth -- a real structural reinforcement at the seam, not the
+# thin shell skin everywhere else. A2's label goes there instead.
+a1 = add_label_y(a1, "A1", FACE_T, (A_BX, A_BZ), into_positive_y=False)
+A2_LABEL_X = X_A1 - 0.02   # the coupon's own real X_MAX edge -- the seam post, confirmed >99% solid
+a2 = add_label_x(a2, "A2", A2_LABEL_X, (5.0, A_BZ), into_positive_x=True)
 
 verify_coupon(a1, "A1 (01a corner)")
 verify_coupon(a2, "A2 (02a corner)")
@@ -476,11 +806,24 @@ verify_coupon(b1, "B1 (02b seam, pre-label)")
 verify_coupon(b2, "B2 (01b seam, pre-label)")
 verify_coupon(b3, "B3 (02a seam strip, pre-label)")
 
-B_LABEL_X1 = B_X1 - 0.02
-B_LABEL_X0 = B_X0 + 0.02
-b1 = add_label(b1, "B1", B_LABEL_X1, (18.0, 40.0), into_positive_x=False)
-b2 = add_label(b2, "B2", B_LABEL_X1, (5.0, 40.0), into_positive_x=False)
-b3 = add_label(b3, "B3", B_LABEL_X0, (18.0, 40.0), into_positive_x=True)
+# 2026-09-24 label fix: B1 and B3 are the two SEAM coupons -- both thin
+# shells, not solid blocks, so (like A2) neither has a broad face at
+# every X plane; scanning the full X range (0.6mm-deep slabs, matching
+# the label's own cut depth) found each coupon's one genuinely broad,
+# full-depth-solid region sits right at the seam post itself: for B1
+# (02b), X=X_B0..X_B0+3mm (Y[3,66.6]mm, 99%+ solid); for B3 (02a, the
+# SAME seam post A2 uses, just a different Z band of the same part),
+# X=X_A1-2mm..X_A1 (Y[3,54.6]mm, 99%+ solid). Everywhere else on either
+# coupon (including the box's OTHER end, where the pre-fix script placed
+# both labels) is a thin rib well under 20% solid at this depth -- kept
+# on the X-normal axis, but moved to the seam-post end. B2 (01b) is a
+# real face-plate section, not a seam rib, so it moves to its own broad
+# Y=FACE_T back face like every other face-plate coupon.
+B1_LABEL_X = X_B0 + 0.02
+B3_LABEL_X = X_A1 - 0.02
+b1 = add_label_x(b1, "B1", B1_LABEL_X, (18.0, 40.0), into_positive_x=False)
+b2 = add_label_y(b2, "B2", FACE_T, (B_PB_X, B_PB_Z), into_positive_y=False)
+b3 = add_label_x(b3, "B3", B3_LABEL_X, (18.0, 40.0), into_positive_x=True)
 
 verify_coupon(b1, "B1 (02b seam)")
 verify_coupon(b2, "B2 (01b seam)")
@@ -566,10 +909,24 @@ _c_hole_ok2, _ = _fastener_hole_exists(_c3_outline_ref, DIFFUSER_T, DIFFUSER_Y0,
                                         "C3 (05 diffuser) BAND_MOUNT")
 assert _c_hole_ok1 and _c_hole_ok2, "Coupon C: the mounting hole axis isn't over real material"
 
-C_LABEL_X = C_BX + 20.0 - 0.02   # box's own real (unclipped) X1 cut plane
-c1 = add_label(c1, "C1", C_LABEL_X, (1.5, C_BZ), into_positive_x=True)
-c2 = add_label(c2, "C2", C_LABEL_X, (11.1, C_BZ), size=1.0, into_positive_x=True)
-c3 = add_label(c3, "C3", C_LABEL_X, (12.6, C_BZ), size=1.0, into_positive_x=True)
+# 2026-09-24 label fix: C2 was the worst offender -- its label sat on its
+# own 2.0mm-thick edge (INSERT_T), which is why it was thinnest of the
+# three even at the same nominal size. All three move to their own broad
+# flat faces: C1 (01a) at Y=FACE_T like every other face-plate coupon;
+# C2 (04a insert) at Y=DIFFUSER_Y0, its own 24.7x24.7mm face against the
+# diffuser -- a real contact face in the clamped stack, same precedent the
+# fix brief itself named safe; C3 (05 diffuser) at Y=DIFFUSER_Y0+DIFFUSER_T,
+# its own OUTWARD exposed face (not a mating face at all).
+#
+# C2's face is genuinely broad (24.7x24.7mm), but it's also perforated by
+# this insert's own LED/wiring holes, spaced densely enough (confirmed by
+# _find_label_anchor finding no qualifying spot for the full "C2" block)
+# that no ~20x13mm rectangle anywhere on it is hole-free. Per the fix
+# brief's own instruction, this is exactly the "genuinely no room" case:
+# use a single character ("2") rather than shrinking below MIN_STROKE_MM.
+c1 = add_label_y(c1, "C1", FACE_T, (C_BX, C_BZ), into_positive_y=False)
+c2 = add_label_y(c2, "2", DIFFUSER_Y0, (C_BX, C_BZ), into_positive_y=False)
+c3 = add_label_y(c3, "C3", DIFFUSER_Y0 + DIFFUSER_T, (C_BX, C_BZ), into_positive_y=False)
 
 verify_coupon(c1, "C1 (01a band-mount)")
 verify_coupon(c2, "C2 (04a band-mount)")
