@@ -553,3 +553,77 @@ open pending sourcing.
 **Nothing here changes CAD yet.** The board pocket and boss pattern could be
 cut today on verified numbers; the well's outer envelope waits on a cable in
 hand and a caliper.
+
+## The cable, resolved — and a correction found by checking the repo
+
+**There is no STEMMA QT cable longer than 150 mm that terminates in 0.1"
+pins or sockets**, at Adafruit or SparkFun. The constraint is ecosystem-wide,
+not a stocking gap. And every QT cable is *female at both ends*, so two cannot
+be chained without a hub board.
+
+**Chosen route: Adafruit 4209 (QT → male pins, 150 mm) + four F-F Dupont leads
+from the kit already in the BOM.** Total run 150 + 200 = **350 mm against a
+178 mm path** — ample slack, coiled the same way the USB extension already is.
+
+Why not the alternatives:
+
+- **Solder the supplied 0.1" header instead** — costs nothing in parts, and the
+  existing 200 mm leads span the path alone. Killed not by the five solder
+  joints (this build already tells you to solder the amp's header) but by
+  **well depth**: the QT connector stands only **2.96 mm** above the PCB, while
+  a straight header plus a Dupont housing stands roughly **17–19 mm**. That
+  takes the well from 9 mm to **25–28 mm deep** in the column, where depth is
+  the scarce dimension. A 3× deeper pocket to save $0.95 is a bad trade.
+- **Chain two cables through a Qwiic hub** — $2.50 and another board to mount,
+  to avoid four Dupont junctions in a build that already has fifteen.
+- **SparkFun Qwiic SHIM** — looks perfect, and is ruled out on a hard pin
+  collision. It wedges onto pins 1–12, and this build already has leads on
+  pins **1, 2, 4, 6, 9, 11 and 12** inside that footprint. SparkFun's own
+  warning: misalignment *"can short your 5V rail to Ground."*
+
+**Bus capacitance is not a concern**, and the arithmetic says so rather than
+intuition: at 100 kHz with the pull-ups in parallel (1.8 k ∥ 10 k ∥ 10 k =
+1.324 kΩ) the budget is ~891 pF; 350 mm of cable plus three devices is
+**≈ 85 pF**, giving a 110 ns rise time against a 1000 ns allowance. Roughly
+9× headroom, and it still passes at 400 kHz. You would need metres before this
+mattered.
+
+### Pin assignment — verified against `docs/wiring.md`, and one correction
+
+| Signal | Pi pin | Name |
+|---|---|---|
+| SDA | **3** | GPIO2 |
+| SCL | **5** | GPIO3 |
+| 3V3 | **17** | 3V3 — *not pin 1; the encoder has it* |
+| GND | **14** | GND — *not pin 6; the display has it* |
+
+The sourcing pass suggested pin 6 for ground. **Pin 6 is already the display's
+ground lead.** Free grounds are 14, 20, 25 and 30. This is the third time on
+this device that a "free" resource turned out to be claimed — check the map,
+do not reason from the pinout diagram.
+
+### The optional-sensor cart
+
+| Part | Price |
+|---|---|
+| Adafruit 5776 SHT41 | $5.95 |
+| Adafruit 4681 BH1750 *(optional)* | $4.50 |
+| Adafruit 4209 QT → male headers, 150 mm | $0.95 |
+| Adafruit 4399 QT ↔ QT, 50 mm *(sensor to sensor, if both)* | $0.95 |
+| 4 × F-F Dupont leads | $0.00 — already BOM line 16 |
+| **Total** | **$12.35** |
+
+**Temperature and humidity alone: $6.90.** Not on Amazon — which is acceptable
+precisely because these are **optional**: the base device remains one
+accessible cart, and only a builder who wants sensing goes to a second vendor.
+
+### One number still unverified
+
+`qt_plug_protrusion` — the moulded plug's reach past the PCB edge. Adafruit
+publishes no CAD or drawing for any of these cables (the whole 480-entry CAD
+repository was enumerated; only USB cables appear). **Measure it with calipers
+when the part arrives, before the well's X dimension and cable slot are cut.**
+
+The bend radius has been retired as a parameter: with the cable exiting
+straight through a slot, the bend happens outside the pocket and no longer
+drives the geometry.
