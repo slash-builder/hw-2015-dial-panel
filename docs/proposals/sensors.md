@@ -444,3 +444,112 @@ perfectly good outcome — it cost one branch.
   `docs/print-log.md`.
 - Thermal rise: **deliberately unquantified.** It is a measurement, not an
   estimate, and §7 files it as a verification item.
+
+---
+
+# Addendum — 2026-09-25: the part is pinned, and two corrections
+
+The proposal above said CAD could not be cut until a specific breakout was
+pinned with real dimensions. It now is, and researching it corrected two
+things the proposal got wrong.
+
+## The part: Adafruit SHT41, PID 5776, $5.95
+
+| | Value | Source |
+|---|---|---|
+| PCB | **25.40 × 17.78 × 4.53 mm** | vendor Eagle board file (X/Y) + published STEP (Z) |
+| Mounting holes | **4 × Ø2.50**, on **20.32 × 12.70 mm** centres | vendor board file |
+| Hole inset | 2.54 mm from both edges | vendor board file |
+| Boss diameter limit | Ø4.00 (silk keepout) | vendor board file |
+| Connector | JST-SH on both short edges, centred 8.89 mm across | vendor board file |
+
+**It wins on documentation, not on quality.** Every generic SHT40 module
+purchasable on Amazon publishes **no board dimensions at all** — only shipping
+carton sizes. Cutting a well to those would mean scaling a listing photo, which
+is exactly how this build's encoder shaft-flat width became an assumed constant
+that is *still* unverified and still blocking a fit test.
+
+A cross-check worth recording: every dimension above lands on an exact imperial
+value — 25.40 = 1.000″, 17.78 = 0.700″, 20.32 = 0.800″, 12.70 = 0.500″. A
+photo-scaled number never lands that cleanly. That is independent corroboration
+that these came out of a board file rather than a ruler.
+
+**The BH1750 (Adafruit 4681) has an identical footprint** — same outline, same
+thickness, same four holes at the same coordinates. **One well geometry serves
+both sensors.** If the light sensor ships later it drops into a duplicate
+pocket with no new CAD.
+
+## Correction 1 — the SHT4x is hwmon, not IIO
+
+The proposal called it "a kernel IIO device". It binds to
+`drivers/hwmon/sht4x.c`, and readings appear under `/sys/class/hwmon/hwmonN/`
+as `temp1_input` and `humidity1_input` — **not** under `/sys/bus/iio/devices/`.
+The BH1750 *is* genuinely IIO (`drivers/iio/light/bh1750.c`). Whoever writes
+the reader needs both paths, not one.
+
+Both are still stock overlays, so the "nothing to compile" standard holds:
+`dtoverlay=i2c-sensor,sht4x` and `dtoverlay=i2c-sensor,bh1750`, both at their
+default addresses.
+
+## Correction 2 — self-heating was never the risk
+
+The datasheet publishes no self-heating figure because there is nothing to
+publish: idle 0.08 µA, measurement 320 µA for 6.9 ms, **average 2.2 µA at one
+reading per second — about 7 µW at 3.3 V.** The board's LDO and power LED add
+roughly 0.4 mW. Nothing there can warm a sensor measurably.
+
+The part *does* carry an on-package heater rated up to 200 mW, but it is
+command-only and the stock driver never touches it.
+
+**So the entire temperature error in this build comes from the enclosure**,
+exactly as the proposal argued. That strengthens the case for the well rather
+than weakening it — there is no part-selection escape from the problem.
+
+## The free space, re-measured on current geometry
+
+The proposal was written before the long perimeter bosses landed (2026-09-25),
+which could easily have eaten the column. Measured on the current exported CAD,
+with the probe first validated against four known-solid locations:
+
+- **Free volume in the lower column: 73 × 59 × 59 mm** (X 77–150, Y 4–63,
+  Z 4–63), bounded below by the wash-LED channel and above by the rocker.
+- The proposal's 30 × 25 × 15 well fits at **X 95–125, Y 6–21, Z 12–37**.
+- The long bosses sit at X 72.56 and 146.76 — the extremes — while the well
+  wants the middle. **They miss each other, but by luck rather than design.**
+  Re-measure if either moves again.
+
+## A new problem: the cable does not reach
+
+The zero-solder route is a STEMMA QT → male Dupont cable. The catch is where
+the two ends live: the sensor well is in the **control column**, the Pi's GPIO
+header is in the **screen module**, across a bolted seam.
+
+```
+Pi 5 + cooler envelope:  X -87.5..-2.5  Y 18.5..39.8  Z 102.1..158.1
+Sensor well:             X  95..125     Y  6..21      Z  12..37
+
+straight line:                      118 mm   (fits a 150 mm lead, +32)
+routed inside the two shells:       178 mm   ** 28 mm short **
+```
+
+A cable cannot fly through a wall. It runs down the column, through the seam
+and along the screen module, and on that path **a 150 mm lead is about 28 mm
+short before any slack for the connector or a service loop.**
+
+This is the fastener-length defect in a different costume: the right part, the
+wrong length, invisible to anything that inspects parts instead of assemblies.
+**Cable length is now a build parameter, not a shopping detail**, and it is
+open pending sourcing.
+
+## Still unverified, and deliberately not guessed
+
+1. **The moulded plug's protrusion from the PCB edge** — no vendor drawing
+   found. This sets the well's X dimension. Routing the cable straight out
+   through a slot, rather than turning it inside the well, retires this by
+   design instead of by measurement, and that is the recommended shape.
+2. **The cable's minimum bend radius** — not published.
+3. **Which cable actually reaches**, per the section above.
+
+**Nothing here changes CAD yet.** The board pocket and boss pattern could be
+cut today on verified numbers; the well's outer envelope waits on a cable in
+hand and a caliper.
