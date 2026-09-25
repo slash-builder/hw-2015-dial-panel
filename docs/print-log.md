@@ -338,6 +338,35 @@ must be driven **before** that module is closed — but the assembly order
 closes the screen module at step 9 and drives the seam bolts at step 11. That
 ordering needs resolving before anyone follows the instructions literally.
 
+### Plates 1 and 2 reprinted — the screen module fits together
+
+First time the two halves of the screen module have gone together. `01a` seats
+into `02a` cleanly, and the screw holes and bosses line up. The silver trim
+ring — printed back on 2026-09-23, on a different plate in a different round —
+drops onto the face plate correctly.
+
+Three separate fixes are confirmed at once, at full scale rather than on a
+coupon:
+
+- **The perimeter boss/wall overlap** (2026-09-22) — the plates now nest.
+- **The long perimeter bosses** (2026-09-25) — brand-new geometry, six Ø9
+  columns ~49 mm tall with gussets, and they land on the back wall's holes.
+- **The trim rebate removal** (2026-09-22, the very first real-print defect) —
+  the ring seats on a flat face, and a part from an earlier round still mates
+  with a part reprinted two rounds later.
+
+**What this does not yet prove.** The parts were offered up, not screwed
+together. The fastener-length fix — M3 × 12 reaching 5.30 mm of engagement
+through a 6.70 mm travel — is still unconfirmed in the real world, and it is
+the fix this whole round existed for. Holes lining up by eye is good evidence
+of alignment and nothing at all about reach.
+
+**The test worth doing next:** drop an M3 × 12 through a back-wall hole. It
+should enter the boss's bore with the head sitting down in its countersink. To
+actually thread it, that boss needs its heat-set insert first.
+
+Minor print-quality points on plate 2 are still to be reviewed.
+
 ## Where the build stands
 
 **All nine plates have now been printed at least once.** What is current and
@@ -345,8 +374,8 @@ what is stale:
 
 | Plate | Parts | State |
 |---|---|---|
-| 1 | 01a face plate, screen | **reprint** — long perimeter bosses (now 2 h 06 m) |
-| 2 | 02a back shell, screen | **reprint** — cable slot + boss fix |
+| 1 | 01a face plate, screen | **current** — reprinted 2026-09-25, fits 02a |
+| 2 | 02a back shell, screen | **current** — reprinted 2026-09-25, fits 01a |
 | 3 | 01b + 02b column | **reprint both** — 01b long bosses, 02b screw access + seam bores |
 | 4 | 08 cup, 11 cleat, 12 rail | **reprint 08** — countersink was on the mating face (11 and 12 are current) |
 | 5 | 03 trim ×2, 06 knob ×2 | current — coupon C passed |
