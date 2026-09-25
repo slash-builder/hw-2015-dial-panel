@@ -1,0 +1,15 @@
+[package]
+name = "dial-sim"
+description = "Desktop harness for the Dial Panel's interaction model — iterate on UI/UX without a Pi."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+dial-nav = { path = "../dial-nav" }
+winit = "0.29"
+softbuffer = "0.4"
+tiny-skia = "0.11"

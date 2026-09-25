@@ -10,6 +10,12 @@ microphone's power.
 > **Status: pre-release.** The CAD is complete and verified (below), but
 > nothing has been printed or fitted yet, and the dashboard software isn't
 > written. Don't print this expecting a finished product yet.
+>
+> The panel's **interaction model** — turn, push, adjust, and the idle reset —
+> is written and tested, and you can drive it on a laptop today: see
+> [`software/`](software/). The dashboard that uses it is still to come.
+
+![Home screen in the desktop harness](docs/drawings/dial-panel-harness-home.png)
 
 ![Nightfall](docs/drawings/dial-panel-nightfall.svg)
 
