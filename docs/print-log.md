@@ -399,3 +399,42 @@ Still worth checking as they come off:
 - **Plates 7–9 together:** do the insert and diffuser now actually bolt to the
   four bosses, flush, with the screws reaching? That is the whole point of the
   last fix and it is the one thing no check can settle.
+
+## 2026-09-25 · stringing at the speaker opening and the light vents
+
+Plates 1 and 2 reprinted cleanly and fit, with one print-quality complaint:
+**stringing across the speaker opening and inside the light vents** on `02a`.
+Cosmetic — it cleans up with a pick — but worth understanding rather than
+tolerating.
+
+**Cause, found in the project's own slicer settings rather than guessed:**
+
+```
+reduce_crossing_wall = 0      ("Avoid crossing walls", off)
+retraction_length    = 0.8 mm @ 30 mm/s
+nozzle_temperature   = 220 °C (PLA)
+```
+
+With *avoid crossing walls* off, a travel move takes the straight line to
+wherever it is going — **including straight across an opening**. Every layer
+containing a hole means the nozzle drags a molten strand over the void. That is
+exactly why the stringing clusters at the speaker opening and the vents and the
+solid areas of the same part are clean: solid areas have short travels over
+material, openings force long travels over air. The speaker opening is the
+worst of them because the pod tube stands right in it, so every layer of the
+tube hops between the tube wall and the outer shell.
+
+**Fixed in the shipped project:** `reduce_crossing_wall` is now on, so travels
+route around holes instead of over them. Cost is a few minutes per plate — the
+long plates go up about 2–9 minutes, roughly 2%.
+
+**If it persists, tune in this order** — the settings, not the model:
+
+1. **Nozzle temperature.** 220 °C is the warm end for PLA. Try 210; ooze falls
+   off quickly with temperature. This is the biggest remaining dial.
+2. **Dry the filament.** PLA that has been open for weeks strings regardless of
+   settings, and no travel setting fixes wet filament.
+3. **Retraction.** 0.8 mm at 30 mm/s is the A1 default. Going to 1.0 mm helps a
+   little, but it is a smaller effect than temperature.
+
+Nothing here is a model defect, and no part changes.

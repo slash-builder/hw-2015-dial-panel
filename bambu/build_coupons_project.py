@@ -109,6 +109,12 @@ def finish(src, dst):
             assert len(ps["filament_settings_id"]) == len(FILAMENTS)
             ps["filament_colour"] = [c for _, c in FILAMENTS]
             ps["curr_bed_type"] = BED_TYPE
+            # Real print, 2026-09-25: stringing across the speaker opening
+            # and the light vents on 02a. Both are holes the nozzle has to
+            # cross on every layer, and with this off the travel goes
+            # straight over the void, dragging a strand each time. Solid
+            # areas of the same print are clean, which is the tell.
+            ps["reduce_crossing_wall"] = "1"   # "Avoid crossing walls"
             data = json.dumps(ps, indent=4).encode()
         elif item.filename == "Metadata/model_settings.config":
             data = re.sub(r'(<metadata key="name" value="[^"]+?)_1"', r'\1"', data.decode()).encode()
