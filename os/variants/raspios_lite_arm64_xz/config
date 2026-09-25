@@ -1,0 +1,15 @@
+# Raspberry Pi OS Lite arm64, shipped as .img.xz.
+#
+# CustomPiOS's stock raspios_lite_arm64 variant globs for a .zip, which is how
+# Raspberry Pi used to publish images. They are .img.xz now, so this variant
+# points at the pinned file build.sh has already downloaded and verified
+# instead of globbing for whatever is lying in the directory.
+
+BASE_ARCH=arm64
+BASE_IMAGE_PATH="${DIST_PATH}/image-raspios_lite_arm64"
+
+# shellcheck source=../../base-image.conf
+source "${DIST_PATH}/base-image.conf"
+BASE_ZIP_IMG="${BASE_IMAGE_PATH}/${BASE_IMAGE_FILE}"
+
+BASE_IGNORE_VARIANT_NAME=yes

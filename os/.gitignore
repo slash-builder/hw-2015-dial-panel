@@ -1,0 +1,10 @@
+# The base image and the build tree. Both are downloads, both are large, and
+# neither belongs in a repo people clone to print a wall panel.
+image-raspios_lite_arm64/
+.work/
+custompios_path
+*.img
+*.img.xz
+*.img.zip
+modules/dialos/filesystem/root/usr/lib/dial-os/config.txt.append
+modules/dialos/filesystem/root/usr/lib/dial-os/dial-dashboard

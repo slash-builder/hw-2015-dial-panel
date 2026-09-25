@@ -1,0 +1,22 @@
+# Dial Panel configuration.
+#
+# Written once at first run and then left alone. Editing it by hand is fine;
+# nothing regenerates it behind your back.
+
+# Which team's light this panel carries: "ignition" or "nightfall".
+#
+# Empty means "not chosen yet" — the panel asks on first boot, on the dial,
+# because that is the one control this device is guaranteed to have. One
+# device, one team, for its life: the release ships both printed band inserts
+# so you choose once, and the software does not offer to change it afterwards.
+team = ""
+
+[dial]
+# Detents per full revolution, measured at first run rather than assumed.
+# A KY-040 may be 20-detent/20-pulse or 30-detent/15-pulse and nothing on the
+# part says which, so guessing makes the dial feel wrong in a way most people
+# would blame on themselves.
+detents_per_turn = 0
+
+# Seconds an open tile waits before the panel goes home by itself.
+idle_timeout_secs = 8

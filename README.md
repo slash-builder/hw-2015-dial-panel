@@ -14,6 +14,10 @@ microphone's power.
 > The panel's **interaction model** — turn, push, adjust, and the idle reset —
 > is written and tested, and you can drive it on a laptop today: see
 > [`software/`](software/). The dashboard that uses it is still to come.
+>
+> [`os/`](os/) builds **Dial OS**: the official Raspberry Pi OS image with this
+> device's overlays, users and services already applied. No image has been
+> built from it yet — the pipeline is there, the first real build is not done.
 
 ![Home screen in the desktop harness](docs/drawings/dial-panel-harness-home.png)
 

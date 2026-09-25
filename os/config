@@ -1,0 +1,30 @@
+# Dial OS — CustomPiOS distribution config.
+#
+# Sourced by CustomPiOS with DIST_PATH set to this directory.
+# Everything that varies per build (version, base image) is exported by
+# ../build.sh rather than hard-coded here.
+
+export DIST_NAME=DialOS
+export DIST_VERSION="${DIST_VERSION:-0.0.0-dev}"
+export MODULES="dialos"
+
+# What a builder sees in Raspberry Pi Imager. CustomPiOS turns these into the
+# os_list entry that makes "Dial OS" selectable in the same tool they already
+# use to flash a Pi — no separate installer, no instructions to follow.
+export RPI_IMAGER_NAME="Dial OS ${DIST_VERSION}"
+export RPI_IMAGER_DESCRIPTION="The dashboard for the Dial Panel (hw-2015). Turn to move, push to open."
+export RPI_IMAGER_ICON="https://raw.githubusercontent.com/slash-builder/hw-2015-dial-panel/main/docs/drawings/dial-os-icon.png"
+export RPI_IMAGER_WEBSITE="https://github.com/slash-builder/hw-2015-dial-panel"
+export RPI_IMAGER_DEVICES='["pi5-64bit"]'
+
+# Room to work in, then shrink back. The dashboard is a single static binary,
+# so this is mostly apt's scratch space during the build.
+export BASE_IMAGE_ENLARGEROOT=600
+export BASE_IMAGE_RESIZEROOT=80
+
+export BASE_ARCH=arm64
+export BASE_USER=dial
+export BASE_USER_PASSWORD=
+
+# Keep the image compressed on release; a Pi OS image is mostly zeroes.
+export DIST_IMAGE_COMPRESS=xz
