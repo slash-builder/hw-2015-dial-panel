@@ -14,10 +14,12 @@ team for life. Body, trim, dial and gold are identical; only the light changes.
 Set the team once in the dashboard's config (`team = "ignition"` or
 `team = "nightfall"`); it selects the screen palette and the LED colour.
 
-> **Pending:** the dashboard software (dial navigation, the idle reset,
-> the team palette, LED control) is not written yet. The hardware, the
-> overlays in `config.txt` and this setting's meaning are fixed; the app
-> that reads it is the next piece of work.
+> **Pending:** dial navigation and the idle reset now exist as tested logic
+> in [`software/dial-nav`](../software/), and the desktop harness renders
+> both teams' light. The **team palette as a real device setting**, and LED
+> control, are still to come — nothing yet reads this value on a Pi. The
+> hardware, the overlays in `config.txt` and this setting's meaning are
+> fixed; the app that reads it is the next piece of work.
 
 **Rules the release keeps** (from the xxx5 guide): colour is light, never
 paint on the body; colour never carries state — focus is a white ring, the

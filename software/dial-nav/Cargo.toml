@@ -1,0 +1,12 @@
+[package]
+name = "dial-nav"
+description = "The Dial Panel's interaction model as pure logic: no I/O, no clock, no hardware."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+# No dependencies, deliberately. This crate is meant to be liftable into
+# Interface Kit later without dragging a tree behind it.
+[dependencies]
