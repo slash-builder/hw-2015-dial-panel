@@ -26,10 +26,10 @@ hex key, small Phillips screwdriver, wire strippers, side cutters.
 |---|---|---|
 | Face plate → back shell (screen) | M3 × 12 | 6 |
 | Face plate → back shell (column) | M3 × 12 | 4 |
-| Seam, screen module → column | M3 × 16 | 4 |
+| Seam, screen module → column | M3 × 12 | 4 |
 | Display → back shell | M2.5 (supplied with the display) | 4 |
 | Speaker back-cup | M3 × 8 | 4 |
-| Trim ring | M3 × 8 | 4 |
+| Trim ring | M3 × 3 (self-tapping) | 4 |
 | Band insert + diffuser | M3 × 8 | 4 |
 | Cleat receiver rail | M3 × 8 | 3 |
 | Wall cleat → wall | #8 wood screws + anchors | 2 |
@@ -41,8 +41,11 @@ hex key, small Phillips screwdriver, wire strippers, side cutters.
 ![Step 1](assembly/step-01-inserts.svg)
 
 Melt an M3 insert into every boss marked here: the back of both face plates
-(01a, 01b), the perimeter and seam bosses of both back shells (02a, 02b), the
-trim ring (03), and the receiver rail (12).
+(01a, 01b), the perimeter and seam bosses of both back shells (02a, 02b), and
+the receiver rail (12). The trim ring (03) is the one exception — its own
+mounting boss is too shallow for a heat-set insert once it clears the
+display's own housing, so it takes a self-tapping M3 × 3 directly into
+the boss, no insert (see step 8).
 
 Set the iron to about 240 °C, press each insert in square, and stop when its
 top is flush. Let them cool before you screw into them. **Take your time
@@ -120,7 +123,7 @@ play. It is much easier to fix now than after the panels are on.
 ![Step 8](assembly/step-08-faceplate.svg)
 
 On 01a:
-- **Trim ring (03):** sits on the front face, standing about 1.5 mm proud, and screws from behind, 4 × M3 × 8.
+- **Trim ring (03):** sits on the front face, standing about 1.5 mm proud, and screws from behind, 4 × M3 × 3 self-tapping (this mount is a shallow self-tap into the boss itself, not a heat-set insert — see step 1 — so it needs the shortest screw in your kit, not the general M3 × 6-16 mm assortment; source separately if needed).
 - **Band insert** (your team's) and **diffuser (05)**: stack them behind the band window and screw both into the same bosses, 4 × M3 × 8. The diffuser's hole goes over the speaker.
 
 ## 9 · Close the screen module
@@ -146,7 +149,7 @@ Then close 01b onto 02b with 4 × M3 × 12 from the back.
 ![Step 11](assembly/step-11-seam.svg)
 
 Stand the screen module and the column face to face, so their side walls
-meet, and drive 4 × M3 × 16 through 02a into the column's bosses. Keep the
+meet, and drive 4 × M3 × 12 through 02a into the column's bosses. Keep the
 front faces flush as you tighten.
 
 ## 12 · Knob

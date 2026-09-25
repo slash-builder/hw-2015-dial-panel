@@ -257,6 +257,87 @@ it, and one proves nothing filled it back in afterwards.
 verified part by part on volume and bounding box. All nine plates slice with
 no warnings.
 
+## 2026-09-25 · first fit coupons printed, and what they found
+
+### Coupons A and C — both PASS
+
+Plate 1 of the coupon project printed all seven black-PLA pieces.
+
+- **A (screen corner) passed.** The boss presses into the wall opening and
+  seats flush by hand. Worth noting A deliberately tests the *worst* case: the
+  one boss narrow enough to need a reduced diameter because the standard 9 mm
+  would not fit there. **Validates the 2026-09-22 boss/wall fix.**
+- **C (band mount) passed.** The stack clamps flat. **Validates the
+  2026-09-23 fix**, where the mounting holes had removed 0.00 mm³ and the
+  hardware floated with nothing to clamp against.
+- **B could not be tested** — no screw long enough. The holes line up
+  visually, which does confirm the seam bores exist and are coaxial.
+
+That last point turned out to matter far more than it sounded.
+
+### The screws were never checked for length — none of them
+
+There is no screw long enough because **no real screw would work**. Measured
+on the exported CAD:
+
+| Joint | Specified | Reality |
+|---|---|---|
+| Face plate → shell (screen) | M3 × 12 | needs ~49 mm — **32 mm short** |
+| Face plate → shell (column) | M3 × 12 | needs ~61 mm — **44 mm short** |
+| Seam bolts | M3 × 16 | max usable **12.21 mm** — bottoms out, head **3.79 mm proud** |
+| Trim ring | M3 × 8 | pilot only **2.90 mm** — bottoms out |
+
+**18 of 25 fasteners were specified wrong.** The face plate's boss ended
+10.1 mm in, the shell's back wall sat 45–56 mm further back, and between them
+was *nothing* — the screw was expected to cross open air.
+
+**Why nothing caught it:** every check modelled the **hole**. None modelled
+the **screw** as an object with a length. Feature-exists, access, bore-open,
+minimum-wall — all correct, all passing, all blind to the one property that
+made the joint impossible.
+
+**Fixed:** the face-plate bosses now run the real depth of the shell
+(48.56 mm screen, 60.56 mm column, both derived from the shell depth rather
+than restated), with the insert recessed 3.6 mm from the clamping tip so an
+M3 × 12 gets 5.30 mm of engagement instead of bottoming out. Each boss carries
+a printed gusset, because a bare Ø9 column 50–60 mm tall is the floating
+cantilever this project has already fixed four times, and slicer supports
+cannot be cleared out of a blind bore.
+
+Seam bolts become **M3 × 12** and trim screws **M3 × 3** — documentation and
+BOM changes only, no geometry.
+
+**New check — fastener length.** Models every fastener as a real object and
+asserts the specified screw reaches and engages. It fails on the old geometry
+reporting all four faults above.
+
+**Also fixed: the check runner could never fail.** `freecadcmd` exits 0 even
+when an assertion fires — it prints the error and returns success. Every
+"exit 0, all checks passed" in this project's history was reading a number
+that could not report failure. All 72 assertions now exit non-zero properly,
+verified by forcing a failure.
+
+### One more, found while fixing the above
+
+The speaker back-cup's countersink was cut on the face that mates against the
+shell, instead of the outward face. Its **volume and bounding box are
+completely unchanged** — only the countersink moved, 77.18 mm³ of material.
+A reprint list derived from volume and bounding box would have missed it
+entirely. It needs reprinting.
+
+### Reprint after this fix
+
+**01a, 01b, 02b and 08.** Plates 1 and 3 get longer: plate 1 goes from
+1 h 31 m to **2 h 06 m**, plate 3 from 4 h 34 m to **4 h 57 m**. All nine
+plates slice with no warnings.
+
+### Still open
+
+The seam bolt's head bears on the screen shell's *cavity-side* wall, so it
+must be driven **before** that module is closed — but the assembly order
+closes the screen module at step 9 and drives the seam bolts at step 11. That
+ordering needs resolving before anyone follows the instructions literally.
+
 ## Where the build stands
 
 **All nine plates have now been printed at least once.** What is current and
@@ -264,11 +345,11 @@ what is stale:
 
 | Plate | Parts | State |
 |---|---|---|
-| 1 | 01a face plate, screen | **reprint** — trim rebate + boss fix |
+| 1 | 01a face plate, screen | **reprint** — long perimeter bosses (now 2 h 06 m) |
 | 2 | 02a back shell, screen | **reprint** — cable slot + boss fix |
-| 3 | 01b + 02b column | reprinted once; **02b needs a third print** — screw access + seam bores (01b is current) |
-| 4 | 08 cup, 11 cleat, 12 rail | current, fitting pending |
-| 5 | 03 trim ×2, 06 knob ×2 | current, printed after the fix |
+| 3 | 01b + 02b column | **reprint both** — 01b long bosses, 02b screw access + seam bores |
+| 4 | 08 cup, 11 cleat, 12 rail | **reprint 08** — countersink was on the mating face (11 and 12 are current) |
+| 5 | 03 trim ×2, 06 knob ×2 | current — coupon C passed |
 | 6 | 07 gold tab ×3 | current, fitting pending |
 | 7 | 05 band diffuser | **reprint** — new mounting geometry |
 | 8 | 04a IGNITION insert | **reprint** — new mounting geometry |
