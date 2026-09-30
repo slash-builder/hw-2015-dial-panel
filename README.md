@@ -7,9 +7,12 @@ Turn to move, push to open, and it goes back home on its own after a few
 seconds. No back button, no smudged glass. A hardware switch cuts the
 microphone's power.
 
-> **Status: pre-release.** The CAD is complete and verified (below), but
-> nothing has been printed or fitted yet, and the dashboard software isn't
-> written. Don't print this expecting a finished product yet.
+> **Status: BETA — not ready for full use.** This repo is public so people
+> can look it over and send first-pass feedback, not so it can be built and
+> relied on. The CAD is complete and verified (below), but nothing has been
+> printed or fitted yet, and the dashboard software isn't written. Expect
+> dimensions, parts and docs to change. Don't print this expecting a finished
+> product, and don't put it on a wall you care about yet.
 >
 > The panel's **interaction model** — turn, push, adjust, and the idle reset —
 > is written and tested, and you can drive it on a laptop today: see
