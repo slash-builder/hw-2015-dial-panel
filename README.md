@@ -7,12 +7,19 @@ Turn to move, push to open, and it goes back home on its own after a few
 seconds. No back button, no smudged glass. A hardware switch cuts the
 microphone's power.
 
-> **Status: BETA — not ready for full use.** This repo is public so people
-> can look it over and send first-pass feedback, not so it can be built and
-> relied on. The CAD is complete and verified (below), but nothing has been
-> printed or fitted yet, and the dashboard software isn't written. Expect
-> dimensions, parts and docs to change. Don't print this expecting a finished
-> product, and don't put it on a wall you care about yet.
+> **Status: BETA — not ready for full use.** This repo is public so people can
+> look it over and send first-pass feedback, not because the design is done.
+> It is well into its test-print cycle: all nine plates have been printed at
+> least once, the screen module fits together, and the fit coupons passed — but
+> **six plates are pending a reprint**, a full fitting is deliberately deferred
+> until they come off the bed, and the dashboard software isn't written.
+> Expect dimensions, parts and docs to change.
+> [`docs/print-log.md`](docs/print-log.md) is the honest record of what has
+> been printed, what failed and why. **Fit reports are the most useful
+> contribution this project can get right now.**
+>
+> It is not published to the print marketplaces, and won't be until there is a
+> fully working unit.
 >
 > The panel's **interaction model** — turn, push, adjust, and the idle reset —
 > is written and tested, and you can drive it on a laptop today: see
