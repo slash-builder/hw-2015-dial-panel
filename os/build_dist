@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# CustomPiOS entry point, matching the shape every other distro built with it
+# uses (OctoPi, MainsailOS, FluiddPi). build.sh writes custompios_path; this
+# just points CustomPiOS at this directory and gets out of the way.
+
+set -euo pipefail
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+export DIST_PATH="${DIR}"
+CUSTOM_PI_OS_PATH="$(<"${DIR}/custompios_path")"
+export CUSTOM_PI_OS_PATH
+export PATH="${PATH}:${CUSTOM_PI_OS_PATH}"
+
+exec "${CUSTOM_PI_OS_PATH}/build_custom_os" "$@"

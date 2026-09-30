@@ -1,0 +1,105 @@
+#!/usr/bin/env bash
+# Dial OS — everything that makes a stock Raspberry Pi OS image into a Dial Panel.
+#
+# This runs inside the image's own filesystem. Keep it readable: it is also the
+# clearest description anyone has of what Dial OS actually *is*, and it is
+# deliberately written so it can be run on a live Pi as an installer instead of
+# through the image build (see os/README.md, "Two ways in").
+
+set -x
+set -e
+
+export LC_ALL=C
+
+# shellcheck source=/dev/null
+source /common.sh
+install_cleanup_trap
+
+DIAL_LIB=/usr/lib/dial-os
+BOOT_CONFIG=/boot/firmware/config.txt
+
+# ── Packages ────────────────────────────────────────────────────────────────
+#
+# Small on purpose. `evtest` and `alsa-utils` are not needed to run the panel,
+# but they are exactly what someone debugging their own soldering will reach
+# for, and they cost a few hundred kilobytes on a device whose whole point is
+# that a stranger can build it.
+
+apt-get update
+check_install_pkgs evtest alsa-utils
+
+# ── Boot configuration ──────────────────────────────────────────────────────
+#
+# The overlays come from the device's own docs/config.txt, staged here by
+# build.sh. They are not retyped: that file is the single source of truth for
+# how this hardware is wired, and a second copy would drift from it the first
+# time a pin moves.
+
+if [ -f "${DIAL_LIB}/config.txt.append" ]; then
+    if grep -q "# >>> dial-os" "${BOOT_CONFIG}" 2>/dev/null; then
+        echo "dial-os: boot config already applied, leaving it alone"
+    else
+        {
+            echo ""
+            echo "# >>> dial-os — generated, do not edit between these markers"
+            cat "${DIAL_LIB}/config.txt.append"
+            echo "# <<< dial-os"
+        } >> "${BOOT_CONFIG}"
+    fi
+else
+    echo "dial-os: WARNING — no config.txt.append staged; the panel's peripherals will not come up"
+fi
+
+# The panel is the whole display. Nothing else should print over it.
+set_config_var disable_splash 1 "${BOOT_CONFIG}" || true
+
+# ── The user the panel runs as ──────────────────────────────────────────────
+#
+# Not root, and not the login user either. The groups are the whole reason
+# this account exists: render/video for DRM/KMS, input for the dial, audio for
+# the amp, gpio for the LEDs.
+
+if ! id -u dial >/dev/null 2>&1; then
+    useradd --system --create-home --home-dir /var/lib/dial --shell /usr/sbin/nologin dial
+fi
+for group in video render input audio gpio; do
+    getent group "${group}" >/dev/null 2>&1 && usermod -aG "${group}" dial
+done
+
+install -d -o dial -g dial -m 0755 /var/lib/dial
+install -d -m 0755 /etc/dial-os
+
+# ── The dashboard binary ────────────────────────────────────────────────────
+#
+# Staged by build.sh when a build of it exists. The image is still valid
+# without it — it boots, the peripherals work, and the first-run service says
+# plainly what is missing. That is better than failing the build and better
+# than shipping an image that lies about being finished.
+
+if [ -f "${DIAL_LIB}/dial-dashboard" ]; then
+    install -m 0755 "${DIAL_LIB}/dial-dashboard" /usr/local/bin/dial-dashboard
+    rm -f "${DIAL_LIB}/dial-dashboard"
+    echo "dial-os: dashboard installed"
+else
+    echo "dial-os: no dashboard binary staged — building a peripherals-only image"
+fi
+
+# ── Services ────────────────────────────────────────────────────────────────
+
+chmod 0755 "${DIAL_LIB}"/*.sh
+
+systemctl_if_exists enable dial-firstrun.service
+systemctl_if_exists enable dial-dashboard.service
+
+# The panel owns tty1. Without this, a login prompt draws over the dashboard.
+systemctl_if_exists disable getty@tty1.service || true
+
+# An appliance on a wall does not need these. Left as a short, explicit list
+# rather than a blanket minimisation pass, so it is obvious what was taken away
+# and easy to put back.
+for unit in bluetooth.service triggerhappy.service; do
+    systemctl_if_exists disable "${unit}" || true
+done
+
+apt-get clean
+rm -rf /var/lib/apt/lists/*
