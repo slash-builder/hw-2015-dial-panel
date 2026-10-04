@@ -1,0 +1,37 @@
+[Unit]
+Description=Dial Panel dashboard
+Documentation=https://github.com/slash-builder/hw-2015-dial-panel
+After=dial-firstrun.service systemd-user-sessions.service
+Wants=dial-firstrun.service
+# The panel is the display. A login prompt must not draw over it.
+Conflicts=getty@tty1.service
+ConditionPathExists=/usr/local/bin/dial-dashboard
+
+[Service]
+Type=simple
+User=dial
+Group=dial
+ExecStart=/usr/local/bin/dial-dashboard
+EnvironmentFile=-/etc/dial-os/dashboard.env
+
+# It draws straight to DRM/KMS on the console, so it needs the tty.
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+
+# A wall panel that dies at 3am should be running again at 3am.
+Restart=always
+RestartSec=2
+
+# It needs the dial, the screen and the speaker. It does not need anything else.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/dial /etc/dial-os
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+[Unit]
+Description=Dial Panel first-run setup
+Documentation=https://github.com/slash-builder/hw-2015-dial-panel
+# Runs after Raspberry Pi Imager's own firstrun has done its work, so the
+# network and user it configured are already in place. Imager's mechanism is
+# deliberately left untouched — it is how the builder gets Wi-Fi onto a device
+# with no keyboard, and reimplementing it would be worse in every way.
+After=network.target
+Before=dial-dashboard.service
+ConditionPathExists=!/var/lib/dial/.firstrun-complete
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/lib/dial-os/firstrun.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
