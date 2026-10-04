@@ -1,4 +1,4 @@
-# Dial Panel -- append to /boot/firmware/config.txt (Raspberry Pi OS Bookworm)
+# Dial Panel -- append to /boot/firmware/config.txt (Raspberry Pi OS Trixie)
 # Overlay names/parameters checked against raspberrypi/firmware boot/overlays/README, 2026-09-21.
 
 # Audio: MAX98357A on GPIO18 (BCLK) / GPIO19 (LRCLK) / GPIO21 (DIN); SD_MODE not driven, keeps GPIO4 free

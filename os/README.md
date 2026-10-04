@@ -123,18 +123,15 @@ laptop — and the first real run is where the remaining unknowns live: the
 None of it is exotic, but none of it is proven, and this file will not claim
 otherwise until an image has booted a Pi.
 
-## Open: Bookworm or Trixie?
+## Decided: Trixie (DJ, 2026-10-04)
 
-This builds on **Trixie**, because that is what Raspberry Pi OS is now — the
-2026-09-15 release is `raspios-trixie-arm64-lite`. The device's
-`docs/config.txt` still says Bookworm in its header.
+This builds on **Trixie**, because that is what Raspberry Pi OS is now: the 2026-09-15 release is `raspios-trixie-arm64-lite`. DJ ruled
+on 2026-10-04 to accept the base bump, and `docs/config.txt`'s header now says Trixie to match.
 
-Starting a new device on the *previous* base is the same mistake as building on
-an end-of-life Yocto branch, which this studio is already paying for elsewhere.
-So: Trixie, unless someone objects. What would justify Bookworm is evidence that
-a specific overlay this device needs — most likely `ws2812-pio`, which is
-RP1-era and new — behaves differently there. That is a bench test, not an
-opinion, and it belongs in the first-boot story.
+Starting a new device on the *previous* base is the same mistake as building on an end-of-life Yocto branch, which this studio is
+already paying for elsewhere. What would reopen this is evidence that a specific overlay this device needs, most likely `ws2812-pio`
+(RP1-era and new), behaves differently on Trixie. That is a bench test, not an opinion, and it belongs in the first-boot story. The
+overlay names in `docs/config.txt` were checked against the firmware README on 2026-09-21 and have **not** been re-checked against Trixie.
 
 ## When to switch to rpi-image-gen
 
